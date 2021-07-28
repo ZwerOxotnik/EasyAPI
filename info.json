@@ -1,0 +1,13 @@
+{
+	"name": "EasyAPI",
+	"version": "0.1.0",
+	"factorio_version": "1.1",
+	"title": "Easy API [ALPHA]",
+	"author": "ZwerOxotnik",
+	"contact": "zweroxotnik@gmail.com, Discord:ZwerOxotnik#7117",
+	"homepage": "",
+	"description": "New events, easy integration and maximum compatibility + safe switchable commands and some settings",
+	"dependencies": [
+		"zk-lib >= 0.7.10"
+	]
+}

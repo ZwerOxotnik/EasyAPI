@@ -1,0 +1,8 @@
+﻿---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2021-07-28
+  Notes:
+    - First release for 1.1
+    - Please, don't use it for other mods. Most parts etc aren't ready.
+    - Some code was added from other mods like https://github.com/ZwerOxotnik/teams-zo diplomacy etc
+    - Some parts was translated by other people
