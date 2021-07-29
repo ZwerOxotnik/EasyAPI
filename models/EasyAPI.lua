@@ -43,12 +43,37 @@ end
 
 --#region Functions of events
 
+local function on_player_created(event)
+	local player = game.get_player(event.player_index)
+	if player.admin then
+		game.permissions.get_group("admins").add_player(player)
+	end
+end
+
+local function on_player_changed_force(event)
+	local target_force = game.get_player(event.player_index).force
+	if teams[target_force.index] then
+		script.raise_event(custom_events.on_player_joined_team, {force = target_force})
+	end
+end
+
 local function on_runtime_mod_setting_changed(event)
 	if event.setting_type ~= "runtime-global" then return end
 
 	if event.setting == "who_decides_diplomacy" then
 		who_decides_diplomacy = settings.global[event.setting].value
 	end
+end
+
+local function on_forces_merging(event)
+	local force = event.source
+	if teams[force.index] then
+		script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+	end
+end
+
+local function on_forces_merged(event)
+	teams[event.source_index] = nil
 end
 
 --#endregion
@@ -183,16 +208,18 @@ local function create_new_team_command(cmd)
 		caller.print({"too-long-team-name"}, cmd.player_index)
 		return
 	end
-	cmd.parameter = trim(cmd.parameter)
+	local team_name = trim(cmd.parameter)
 
 	-- for compability with other mods/scenarios and forces count max = 64 (https://lua-api.factorio.com/1.1.30/LuaGameScript.html#LuaGameScript.create_force)
 	if #game.forces >= 60 then caller.print({"teams.too_many"}) return end
-	if game.forces[cmd.parameter] then
-		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", cmd.parameter})
+	if game.forces[team_name] then
+		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", team_name})
 		return
 	end
 
-	local new_team = game.create_force(cmd.parameter)
+	local new_team = game.create_force(team_name)
+	teams[new_team.index] = team_name
+	script.raise_event(custom_events.on_new_team, {force = new_team})
 	if #caller.force.players == 1 and not constant_forces[caller.force.name] then
 		local technologies = new_team.technologies
 		for name, tech in pairs(caller.force.technologies) do
@@ -260,6 +287,16 @@ local function update_global_data()
 
 	link_data()
 
+	local group = game.permissions.get_group("admins")
+	if group == nil then
+		game.permissions.create_group("admins")
+	end
+
+	if teams == nil then
+		local player_force = game.forces.player
+		teams[player_force.index] = "player"
+	end
+
 	-- for i, _ in pairs(game.players) do
 	-- 	if diplomacy.players[i] == nil then
 	-- 		diplomacy.players[i] = {}
@@ -283,8 +320,8 @@ remote.add_interface("EasyAPI", {
 	get_data = function()
 		return mod_data
 	end,
-	add_team = function(team)
-		teams[#teams+1] = team
+	add_team = function(force)
+		teams[force.index] = force.name
 	end,
 	get_teams = function()
 		return teams
@@ -292,26 +329,32 @@ remote.add_interface("EasyAPI", {
 	set_teams = function(new_teams) -- TODO: check
 		mod_data.teams = new_teams
 	end,
-	remove_team = function(name)
-		for k, team in pairs(teams) do
-			if team.name == name then
-				teams[k] = nil
-				return k
+	remove_team = function(index)
+		for _index, name in pairs(teams) do
+			if _index == index then
+				local force = game.forces[name]
+				script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+				teams[_index] = nil
+				return name
 			end
 		end
 
 		return 0 -- not found
 	end,
-	find_team = function(name)
-		for k, team in pairs(teams) do
-			if team.name == name then
-				return k
+	find_team = function(index)
+		for _index, name in pairs(teams) do
+			if _index == index then
+				return name
 			end
 		end
 
 		return 0 -- not found
 	end,
 	delete_teams = function()
+		for _, name in pairs(teams) do
+			local force = game.forces[name]
+			script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+		end
 		mod_data.teams = nil
 	end,
 	-- get_locked_teams = function()
@@ -327,7 +370,15 @@ remote.add_interface("EasyAPI", {
 
 M.events = {
 	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
-	[defines.events.on_player_removed] = clear_player_data
+	[defines.events.on_player_created] = function(event)
+		pcall(on_player_created, event)
+	end,
+	[defines.events.on_player_changed_force] = function(event)
+		pcall(on_player_changed_force, event)
+	end,
+	[defines.events.on_player_removed] = clear_player_data,
+	[defines.events.on_forces_merging] = on_forces_merging,
+	[defines.events.on_forces_merged] = on_forces_merged
 }
 
 M.commands = {

@@ -11,10 +11,11 @@ return {
 	-- Teams
   on_team_lost = script.generate_event_name(), -- {name = force.name}
   on_team_won = script.generate_event_name(), -- {name = force.name}
-  on_player_joined_team = script.generate_event_name(), -- {player_index = player.index, team = team, force = force}
-  on_new_team = script.generate_event_name(), -- {team = team, force = force}
-  on_team_invited = script.generate_event_name(), -- {player_index = player.index, team = team, force = force}
-  on_player_accepted_invite = script.generate_event_name(), -- {player_index = player.index, team = team, force = force}
+  on_player_joined_team = script.generate_event_name(), -- {player_index = player.index, force = force}
+  on_new_team = script.generate_event_name(), -- {force = force}
+	on_pre_deleted_team = script.generate_event_name(), -- {force = force}
+  on_team_invited = script.generate_event_name(), -- {player_index = player.index, force = force}
+  on_player_accepted_invite = script.generate_event_name(), -- {player_index = player.index, force = force}
 
 	-- Called when someone/something was kicked from a team.
 	--	Contains:
