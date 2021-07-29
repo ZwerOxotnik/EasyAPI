@@ -19,6 +19,10 @@ local on_neutral_event
 local on_enemy_event
 
 
+---@type table<string, integer>
+M.custom_events = {}
+
+
 local function get_stance_diplomacy(force, other_force)
 	if force.get_friend(other_force) then
 		return "ally"
@@ -83,6 +87,12 @@ M.on_load = function()
 	on_ally_event = remote.call("EasyAPI", "get_event_name", "on_ally")
 	on_neutral_event = remote.call("EasyAPI", "get_event_name", "on_neutral")
 	on_enemy_event = remote.call("EasyAPI", "get_event_name", "on_enemy")
+
+	M.custom_events = {
+		on_ally = on_ally_event,
+		on_neutral = on_neutral_event,
+		on_enemy = on_enemy_event
+	}
 end
 
 
