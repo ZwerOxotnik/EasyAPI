@@ -5,7 +5,7 @@ Date: 2021-07-30
     - Extended remote interface for money
     - Filled money_util.lua
     - Changed on_updated_force_balance event
-  Bigfixes:
+  Bugfixes:
     - Fixed /set-money
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
