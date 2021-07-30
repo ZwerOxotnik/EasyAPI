@@ -2,7 +2,7 @@
 Version: 0.2.1
 Date: 2021-07-30
   Changes:
-    - Extended remote interface for money
+    - Extended remote interface for money API
     - Filled money_util.lua
     - Changed on_updated_force_balance event
   Bugfixes:
