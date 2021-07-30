@@ -19,43 +19,57 @@ M.custom_events = {}
 
 
 M.have_force_enough_money = function(force, amount)
-
+	local balance = remote.call("EasyAPI", "get_force_money", force.index)
+	if balance and balance >= amount then
+		return true
+	else
+		return false
+	end
 end
 
 M.have_player_enough_money = function(player, amount)
-
+	local balance = remote.call("EasyAPI", "get_player_money", player.index)
+	if balance and balance >= amount then
+		return true
+	else
+		return false
+	end
 end
 
 M.set_force_balance = function(force, amount)
-
+	remote.call("EasyAPI", "set_force_money", force, amount)
 end
 
 M.set_player_balance = function(player, amount)
-
+	remote.call("EasyAPI", "set_player_money", player.index, amount)
 end
 
 M.deposit_force = function(force, amount)
-
+	local balance = remote.call("EasyAPI", "get_force_money", force.index) + amount
+	remote.call("EasyAPI", "set_force_money", force, balance)
 end
 
 M.deposit_player = function(player, amount)
-
+	local balance = remote.call("EasyAPI", "get_player_money", player.index) + amount
+	remote.call("EasyAPI", "set_player_money", player.index, balance)
 end
 
 M.withdraw_force = function(force, amount)
-
+	local balance = remote.call("EasyAPI", "get_force_money", force.index) - amount
+	remote.call("EasyAPI", "set_force_money", force, balance)
 end
 
 M.withdraw_player = function(player, amount)
-
+	local balance = remote.call("EasyAPI", "get_player_money", player.index) - amount
+	remote.call("EasyAPI", "set_player_money", player.index, balance)
 end
 
 M.get_force_balance = function(force)
-
+	return remote.call("EasyAPI", "get_force_money", force.index)
 end
 
 M.get_player_balance = function(player)
-
+	return remote.call("EasyAPI", "get_player_money", player.index)
 end
 
 
