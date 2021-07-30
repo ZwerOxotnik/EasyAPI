@@ -25,10 +25,10 @@ return {
   on_player_kicked_from_team = script.generate_event_name(),
 
 	-- Money
-  on_updated_force_balance = script.generate_event_name(), -- {target = force.name, balance = float}
+  on_updated_force_balance = script.generate_event_name(), -- {target = force, balance = float}
   on_updated_player_balance = script.generate_event_name(), -- {target = player.index, balance = float}
-  on_transfered_money = script.generate_event_name(), -- {target = player.index, player_index = player.index}
-  on_transfered_force_money = script.generate_event_name(), -- {target = force.name, cause = force.name}
+  on_transfered_player_money = script.generate_event_name(), -- {target = player.index, player_index = player.index}
+  on_transfered_force_money = script.generate_event_name(), -- {target = force, source = force, [cause]}
 
 	-- Spawn
 	on_new_global_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
@@ -49,19 +49,7 @@ return {
 	on_neutral = script.generate_event_name(),
 	on_enemy = script.generate_event_name(),
 
-	-- General
-  on_reload_scenario = script.generate_event_name(),
-  on_new_character = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_admin_surface = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_scenario_surface = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_lobby_surface = script.generate_event_name(), -- {player_index = player.index}
-
-	-- Called when switched a mod
-	--	Contains:
-	--		mod_name :: string
-	--		state :: boolean
-	on_toggle = script.generate_event_name(),
-
+	-- Chat
 	-- (Propably, it'll be changed)
 	--  Called when a player successfully send a message.
 	--	Contains:
@@ -75,4 +63,17 @@ return {
 	--		sender_index :: uint: The index of the player who did the poke.
 	--		target_index :: uint: The index of the player who receive the poke.
 	on_poke = script.generate_event_name(),
+
+	-- General
+  on_reload_scenario = script.generate_event_name(),
+  on_new_character = script.generate_event_name(), -- {player_index = player.index}
+  on_player_on_admin_surface = script.generate_event_name(), -- {player_index = player.index}
+  on_player_on_scenario_surface = script.generate_event_name(), -- {player_index = player.index}
+  on_player_on_lobby_surface = script.generate_event_name(), -- {player_index = player.index}
+
+	-- Called when switched a mod
+	--	Contains:
+	--		mod_name :: string
+	--		state :: boolean
+	on_toggle = script.generate_event_name(),
 }

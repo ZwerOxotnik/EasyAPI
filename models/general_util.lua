@@ -1,0 +1,42 @@
+--[[
+	[WIP]
+	Currently, I don't recommend to use it. It may change.
+]]
+
+---@class general_util : module
+local M = {}
+
+
+-- Events
+local on_reload_scenario_event
+local on_new_character_event
+local on_player_on_admin_surface_event
+local on_player_on_scenario_surface_event
+local on_player_on_lobby_surface_event
+local on_toggle_event
+
+
+---@type table<string, integer>
+M.custom_events = {}
+
+
+M.on_load = function()
+	on_reload_scenario_event = remote.call("EasyAPI", "get_event_name", "on_reload_scenario")
+	on_new_character_event = remote.call("EasyAPI", "get_event_name", "on_new_character")
+	on_player_on_admin_surface_event = remote.call("EasyAPI", "get_event_name", "on_player_on_admin_surface")
+	on_player_on_scenario_surface_event = remote.call("EasyAPI", "get_event_name", "on_player_on_scenario_surface")
+	on_player_on_lobby_surface_event = remote.call("EasyAPI", "get_event_name", "on_player_on_lobby_surface")
+	on_toggle_event = remote.call("EasyAPI", "get_event_name", "on_toggle")
+
+	M.custom_events = {
+		on_reload_scenario = on_reload_scenario_event,
+		on_new_character = on_new_character_event,
+		on_player_on_admin_surface = on_player_on_admin_surface_event,
+		on_player_on_scenario_surface = on_player_on_scenario_surface_event,
+		on_player_on_lobby_surface = on_player_on_lobby_surface_event,
+		on_toggle = on_toggle_event
+	}
+end
+
+
+return M

@@ -3,18 +3,28 @@ local M = {}
 
 
 --#region Global data
-local teams
 local mod_data
+local teams
+local players_money
+local forces_money
 --#endregion
 
 
+--#region Values from settings
+local start_player_money = settings.global["start-player-money"].value
+local start_force_money = settings.global["start-force-money"].value
 local who_decides_diplomacy = settings.global["who-decides-diplomacy"].value
+local default_permission_group = settings.global["default-permission-group"].value
+--#endregion
 
 
 --#region Constants
 local custom_events = require("events")
 local constant_forces = {neutral = true, player = true, enemy = true}
+local red_color = {1,0,0}
+local yellow_color = {1,1,0}
 --#endregion
+
 
 --#region Util
 
@@ -35,7 +45,7 @@ local function print_to_caller(message, caller)
 end
 
 local function clear_player_data(event)
-	local player_index = event.player_index
+	players_money[event.player_index] = nil
 end
 
 --#endregion
@@ -44,10 +54,13 @@ end
 --#region Functions of events
 
 local function on_player_created(event)
-	local player = game.get_player(event.player_index)
+	local player_index = event.player_index
+	local player = game.get_player(player_index)
 	if player.admin then
 		game.permissions.get_group("admins").add_player(player)
 	end
+	players_money[player_index] = start_player_money
+	script.raise_event(custom_events.on_updated_player_balance, {player_index = player_index, balance = start_player_money})
 end
 
 local function on_player_changed_force(event)
@@ -57,11 +70,43 @@ local function on_player_changed_force(event)
 	end
 end
 
+local function on_player_promoted(event)
+	game.permissions.get_group("admins").add_player(game.get_player(event.player_index))
+end
+
+local function on_pre_player_removed(event)
+	local player_index = event.player_index
+	local force_index = game.get_player(player_index).force.index
+	local player_money = players_money[player_index]
+	-- send player money to force
+	if forces_money[force_index] and player_money then
+		forces_money[force_index] = forces_money[force_index] + player_money
+	end
+end
+
+local function on_player_demoted(event)
+	local player = game.get_player(event.player_index)
+	if player.permission_group.name == "admins" then
+		game.permissions.get_group(default_permission_group).add_player(player)
+	end
+end
+
+local function on_game_created_from_scenario(event)
+	script.raise_event(custom_events.on_new_team, {force = game.forces.player})
+end
+
 local function on_runtime_mod_setting_changed(event)
 	if event.setting_type ~= "runtime-global" then return end
 
-	if event.setting == "who_decides_diplomacy" then
+	if event.setting == "who-decides-diplomacy" then
 		who_decides_diplomacy = settings.global[event.setting].value
+	elseif event.setting == "default-permission-group" then
+		default_permission_group = settings.global[event.setting].value
+		-- TODO: check the permission group
+	elseif event.setting == "start-player-money" then
+		start_player_money = settings.global[event.setting].value
+	elseif event.setting == "start-force-money" then
+		start_force_money = settings.global[event.setting].value
 	end
 end
 
@@ -74,6 +119,14 @@ end
 
 local function on_forces_merged(event)
 	teams[event.source_index] = nil
+end
+
+local function on_new_team(event)
+	forces_money[event.force.index] = start_force_money
+end
+
+local function on_pre_deleted_team(event)
+	forces_money[event.force.index] = nil
 end
 
 --#endregion
@@ -216,6 +269,10 @@ local function create_new_team_command(cmd)
 		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", team_name})
 		return
 	end
+	if team_name:find(" ") then
+		caller.print("Whitespaces aren't allowed for teams", red_color)
+		return
+	end
 
 	local new_team = game.create_force(team_name)
 	teams[new_team.index] = team_name
@@ -271,6 +328,281 @@ local function friendly_fire_command(cmd)
 	end
 end
 
+local function set_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local caller = game.get_player(cmd.player_index)
+
+	local amount = tonumber(args[2] or args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.set-money"})
+		return
+	end
+
+	local target = (args[1] and game.get_player(args[1])) or caller
+	if not (target and target.valid) then
+		caller.print("\"" .. args[1] .. "\" player doesn't exist")
+		return
+	else
+		players_money[target.index] = amount
+		script.raise_event(custom_events.on_updated_player_balance, {player_index = target.index, balance = amount})
+		caller.print(target.name .. "'s balance: " .. amount)
+	end
+end
+
+local function set_team_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local caller = game.get_player(cmd.player_index)
+
+	local amount = tonumber(args[2] or args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.set-team-money"})
+		return
+	end
+
+	local target = (#args == 2 and game.forces[args[1]]) or caller.force
+	if not (target and target.valid) then
+		caller.print("\"" .. args[1] .. "\" team doesn't exist")
+		return
+	else
+		forces_money[target.index] = amount
+		script.raise_event(custom_events.on_updated_force_balance, {target = target, balance = amount})
+		caller.print(target.name .. "'s balance: " .. amount)
+	end
+end
+
+local function deposit_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local player_index = cmd.player_index
+	local caller = game.get_player(player_index)
+
+	local amount = tonumber(args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.deposit-money"})
+		return
+	end
+
+	local force = caller.force
+	local result = players_money[caller.index] - amount
+	if result > 0 then
+		players_money[caller.index] = result
+		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
+		forces_money[force.index] = forces_money[force.index] + amount
+		script.raise_event(custom_events.on_updated_force_balance, {target = force, balance = forces_money[force.index]})
+		caller.print("Your balance: " .. result)
+		caller.print(force.name .. "'s balance: " .. forces_money[force.index])
+	else
+		caller.print("Not enough money", yellow_color)
+	end
+end
+
+local function withdraw_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local player_index = cmd.player_index
+	local caller = game.get_player(player_index)
+
+	local amount = tonumber(args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.withdraw-money"})
+		return
+	end
+
+	local force = caller.force
+	local result = forces_money[force.index] - amount
+	if result > 0 then
+		forces_money[force.index] = result
+		script.raise_event(custom_events.on_updated_force_balance, {target = force, balance = result})
+		players_money[caller.index] = players_money[caller.index] + amount
+		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
+		caller.print("Your balance: " .. result)
+		caller.print(force.name .. "'s balance: " .. result)
+	else
+		caller.print("Not enough money", yellow_color)
+	end
+end
+
+local function deposit_team_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local caller = game.get_player(cmd.player_index)
+
+	local amount = tonumber(args[2] or args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.deposit-team-money"})
+		return
+	end
+
+	local target = (#args == 2 and game.forces[args[1]]) or caller.force
+	if not (target and target.valid) then
+		caller.print("\"" .. args[1] .. "\" team doesn't exist")
+		return
+	else
+		forces_money[target.index] = forces_money[target.index] + amount
+		script.raise_event(custom_events.on_updated_force_balance, {target = target, balance = forces_money[target.index]})
+		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	end
+end
+
+local function withdraw_team_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local caller = game.get_player(cmd.player_index)
+
+	local amount = tonumber(args[2] or args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.withdraw-team-money"})
+		return
+	end
+
+	local target = (#args == 2 and game.forces[args[1]]) or caller.force
+	if not (target and target.valid) then
+		caller.print("\"" .. args[1] .. "\" team doesn't exist")
+		return
+	else
+		forces_money[target.index] = forces_money[target.index] - amount
+		script.raise_event(custom_events.on_updated_force_balance, {target = target, balance = forces_money[target.index]})
+		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	end
+end
+
+local function pay_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+
+	local caller = game.get_player(cmd.player_index)
+	if #args < 2 then caller.print({"EasyAPI-commands.pay"}) end
+
+	local amount = tonumber(args[2])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.pay"})
+		return
+	end
+
+	local target = game.get_player(args[1])
+	if not (target and target.valid) then
+		caller.print("\"" .. args[1] .. "\" player doesn't exist")
+		return
+	elseif target == caller then
+		caller.print("You can't pay yourself", red_color)
+		return
+	else
+		local result = players_money[caller.index] - amount
+		if result > 0 then
+			players_money[caller.index] = result
+			script.raise_event(custom_events.on_updated_player_balance, {target = caller, balance = result})
+			players_money[target.index] = players_money[target.index] + amount
+			script.raise_event(custom_events.on_updated_player_balance, {target = target, balance = players_money[target.index]})
+			caller.print("Your balance: " .. result)
+		else
+			caller.print("Not enough money", yellow_color)
+		end
+	end
+end
+
+local function balance_command(cmd)
+	local caller = game.get_player(cmd.player_index)
+	local target
+	if cmd.parameter == nil then
+		target = caller.force
+	else
+		cmd.parameter = trim(cmd.parameter)
+		if cmd.parameter == '' then
+			target = caller.force
+		else
+			target = game.get_player(cmd.parameter)
+			if not (target and target.valid) then
+				caller.print("\"" .. cmd.parameter .. "\" player doesn't exist")
+				return
+			end
+		end
+	end
+
+	local balance = players_money[caller.index]
+	if balance then
+		caller.print("Your balance: " .. players_money[caller.index])
+	end
+	if forces_money[target.index] then
+		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	end
+end
+
+local function team_balance_command(cmd)
+	local caller = game.get_player(cmd.player_index)
+	local target
+	if cmd.parameter == nil then
+		target = caller.force
+	else
+		cmd.parameter = trim(cmd.parameter)
+		if cmd.parameter == '' then
+			target = caller.force
+		else
+			target = game.forces[cmd.parameter]
+			if not (target and target.valid) then
+				caller.print("\"" .. cmd.parameter .. "\" team doesn't exist")
+				return
+			end
+		end
+	end
+
+	local force = target
+	if forces_money[force.index] then
+		caller.print(target.name .. "'s balance: " .. forces_money[force.index])
+	else
+		caller.print("No balance for the force", red_color)
+	end
+end
+
+local function transfer_team_money_command(cmd)
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+	local caller = game.get_player(cmd.player_index)
+
+	local amount = tonumber(args[2] or args[1])
+	if amount == nil then
+		caller.print({"EasyAPI-commands.transfer-team-money"})
+		return
+	end
+
+	local target
+	if #args == 2 then
+		target = game.forces[args[1]]
+		if not (target and target.valid) then
+			caller.print("\"" .. args[1] .. "\" team doesn't exist")
+			return
+		elseif target == caller.force then
+			caller.print("You can't transfer money to your own team", red_color)
+			return
+		end
+
+		local force = caller.force
+		local result = forces_money[force.index] - amount
+		if result > 0 then
+			forces_money[force.index] = result
+			script.raise_event(custom_events.on_updated_force_balance, {target = force, balance = result})
+			forces_money[target.index] = forces_money[target.index] + amount
+			script.raise_event(custom_events.on_updated_force_balance, {target = target, balance = forces_money[target.index]})
+			caller.print(force.name .. "'s balance: " .. result)
+		else
+			caller.print("Not enough money", yellow_color)
+		end
+	else--if #args == 1 then
+		target = caller.force
+		local result = players_money[caller.index] - amount
+		if result > 0 then
+			players_money[caller.index] = result
+			script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
+			forces_money[target.index] = forces_money[target.index] + amount
+			script.raise_event(custom_events.on_updated_force_balance, {target = target, balance = forces_money[target.index]})
+			caller.print("Your balance: " .. players_money[caller.index])
+		else
+			caller.print("Not enough money", yellow_color)
+		end
+	end
+end
+
 --#endregion
 
 
@@ -279,11 +611,15 @@ end
 local function link_data()
 	mod_data = global.EasyAPI
 	teams = global.EasyAPI.teams
+	players_money = global.EasyAPI.players_money
+	forces_money = global.EasyAPI.forces_money
 end
 
 local function update_global_data()
 	global.EasyAPI = global.EasyAPI or {}
 	global.EasyAPI.teams = global.EasyAPI.teams or {}
+	global.EasyAPI.players_money = global.EasyAPI.players_money or {}
+	global.EasyAPI.forces_money = global.EasyAPI.forces_money or {}
 
 	link_data()
 
@@ -292,16 +628,17 @@ local function update_global_data()
 		game.permissions.create_group("admins")
 	end
 
-	if teams == nil then
+	if #teams == 0 then
 		local player_force = game.forces.player
 		teams[player_force.index] = "player"
+		forces_money[player_force.index] = start_force_money
 	end
 
-	-- for i, _ in pairs(game.players) do
-	-- 	if diplomacy.players[i] == nil then
-	-- 		diplomacy.players[i] = {}
-	-- 	end
-	-- end
+	for player_index, _ in pairs(game.players) do
+		if players_money[player_index] == nil then
+			players_money[player_index] = start_player_money
+		end
+	end
 end
 
 
@@ -369,6 +706,7 @@ remote.add_interface("EasyAPI", {
 
 
 M.events = {
+	[defines.events.on_game_created_from_scenario] = on_game_created_from_scenario,
 	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
 	[defines.events.on_player_created] = function(event)
 		pcall(on_player_created, event)
@@ -376,9 +714,18 @@ M.events = {
 	[defines.events.on_player_changed_force] = function(event)
 		pcall(on_player_changed_force, event)
 	end,
+	[defines.events.on_player_demoted] = function(event)
+		pcall(on_player_demoted, event)
+	end,
+	[defines.events.on_player_promoted] = function(event)
+		pcall(on_player_promoted, event)
+	end,
+	[defines.events.on_pre_player_removed] = on_pre_player_removed,
 	[defines.events.on_player_removed] = clear_player_data,
 	[defines.events.on_forces_merging] = on_forces_merging,
-	[defines.events.on_forces_merged] = on_forces_merged
+	[defines.events.on_forces_merged] = on_forces_merged,
+	[custom_events.on_new_team] = on_new_team,
+	[custom_events.on_pre_deleted_team] = on_pre_deleted_team
 }
 
 M.commands = {
@@ -387,7 +734,17 @@ M.commands = {
 	team_list = team_list_command,
 	show_team = show_team_command,
 	kick_teammate = kick_teammate_command,
-	friendly_fire = friendly_fire_command
+	friendly_fire = friendly_fire_command,
+	set_money = set_money_command,
+	set_team_money = set_team_money_command,
+	deposit_money = deposit_money_command,
+	withdraw_money = withdraw_money_command,
+	deposit_team_money = deposit_team_money_command,
+	withdraw_team_money = withdraw_team_money_command,
+	transfer_team_money = transfer_team_money_command,
+	pay = pay_command,
+	balance = balance_command,
+	team_balance = team_balance_command
 }
 
 

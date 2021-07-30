@@ -21,5 +21,15 @@ return {
 	team_list = {name = "team-list", allow_for_server = true},
 	show_team = {name = "show-team", allow_for_server = true},
 	kick_teammate = {name = "kick-teammate", is_allowed_empty_args = false, input_type = "player"},
-	friendly_fire = {name = "friendly-fire", is_allowed_empty_args = false, only_for_admin = true}
+	friendly_fire = {name = "friendly-fire", is_allowed_empty_args = false, only_for_admin = true},
+	set_money = {name = "set-money", is_allowed_empty_args = false, only_for_admin = true},
+	deposit_money = {name = "deposit-money", is_allowed_empty_args = false},
+	withdraw_money = {name = "withdraw-money", is_allowed_empty_args = false},
+	set_team_money = {name = "set-team-money", is_allowed_empty_args = false, only_for_admin = true},
+	deposit_team_money = {name = "deposit-team-money", is_allowed_empty_args = false, only_for_admin = true},
+	withdraw_team_money = {name = "withdraw-team-money", is_allowed_empty_args = false, only_for_admin = true},
+	transfer_team_money = {name = "transfer-team-money", is_allowed_empty_args = false},
+	pay = {is_allowed_empty_args = false},
+	balance = {},
+	team_balance = {name = "team-balance"}
 }

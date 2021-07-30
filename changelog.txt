@@ -1,4 +1,19 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+Date: 2021-07-30
+  Changes:
+    - Teams are more stable
+    - Added parts of economy (not fully ready)
+    - New commands for economy (not fully ready)
+    - Changed API
+  Bugfixes:
+    - Some bugfixes for permissions, commands
+  Notes:
+    - Many things aren't translated yet
+    - Many stuff aren't completed still
+    - Events of economy not fully works
+    - Remote interface for economy isn't ready at all, therefore affects on some dev parts
+---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2021-07-29
   Changes:
