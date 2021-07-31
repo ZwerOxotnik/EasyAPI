@@ -27,4 +27,10 @@ data:extend({
 		setting_type = "runtime-global",
 		default_value = "Default",
 	},
+	{
+		type = "string-setting",
+		name = "default-force-name",
+		setting_type = "runtime-global",
+		default_value = "player",
+	},
 })

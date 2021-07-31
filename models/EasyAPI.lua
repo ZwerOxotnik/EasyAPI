@@ -15,6 +15,7 @@ local start_player_money = settings.global["start-player-money"].value
 local start_force_money = settings.global["start-force-money"].value
 local who_decides_diplomacy = settings.global["who-decides-diplomacy"].value
 local default_permission_group = settings.global["default-permission-group"].value
+local default_force_name = settings.global["default-force-name"].value
 --#endregion
 
 
@@ -134,6 +135,8 @@ local function on_runtime_mod_setting_changed(event)
 		start_player_money = settings.global[event.setting].value
 	elseif event.setting == "start-force-money" then
 		start_force_money = settings.global[event.setting].value
+	elseif event.setting == "default-force-name" then
+		default_force_name = settings.global[event.setting].value
 	end
 end
 
@@ -268,14 +271,15 @@ end
 local function kick_teammate_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 	local target_player = game.get_player(cmd.parameter)
+	local force = game.forces[default_force_name] or game.forces.player
 	if caller.admin then
 		game.print(cmd.parameter .. " was kicked from \"" .. target_player.force.name .. "\" team by " .. caller.name)
-		target_player.force = game.forces["player"]
+		target_player.force = force
 		script.raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
 	elseif caller.force == target_player.force then
 		if caller.force.players[1] == caller then
 			game.print(cmd.parameter .. " was kicked from \"" .. target_player.force.name .. "\" team by " .. caller.name)
-			target_player.force = game.forces["player"]
+			target_player.force = force
 			script.raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
 		else
 			caller.print("You don't have permissions to kick players")
@@ -335,7 +339,7 @@ local function remove_team_command(cmd)
 		return
 	end
 
-	game.merge_forces(target_force, game.forces["player"])
+	game.merge_forces(target_force, game.forces.player)
 end
 
 -- TODO: improve
