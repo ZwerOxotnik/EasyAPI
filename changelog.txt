@@ -1,10 +1,21 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.2.3
+Date: 2021-07-31
+  Changes:
+    - Changed money_util.lua
+    - Changed localization of economy commands
+    - Changed remote interface for money API
+    - Balances resets on round start
+    - Adds player in team on_player_accepted_invite
+  Notes:
+    - Need default force
+---------------------------------------------------------------------------------------------------
 Version: 0.2.2
 Date: 2021-07-31
   Changes:
     - Changed general_util.lua
     - Changed teams_util.lua
-    - CHanged remote interface
+    - Changed remote interface
   Bugfixes:
     - Fixed interactions with players/forces who don't have balance
     - Added missed event when new team added via remote interface

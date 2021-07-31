@@ -72,6 +72,14 @@ M.get_player_balance = function(player)
 	return remote.call("EasyAPI", "get_player_money", player.index)
 end
 
+M.reset_player_balance = function(player_index)
+	remote.call("EasyAPI", "reset_player_balance", player_index)
+end
+
+M.reset_force_balance = function(force)
+	remote.call("EasyAPI", "reset_player_balance", force)
+end
+
 
 M.on_load = function()
 	on_updated_force_balance_event = remote.call("EasyAPI", "get_event_name", "on_updated_force_balance")

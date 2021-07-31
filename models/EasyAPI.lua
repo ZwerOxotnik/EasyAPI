@@ -49,10 +49,30 @@ local function clear_player_data(event)
 	players_money[event.player_index] = nil
 end
 
-local create_lobby_surface = function()
-  local surface = game.create_surface("Lobby", {width = 1, height = 1})
+local function create_lobby_surface()
+	local surface = game.get_surface("Lobby")
+	if surface then return surface end
+
+	surface = game.create_surface("Lobby", {width = 1, height = 1})
   surface.set_tiles({{name = "out-of-map", position = {1,1}}})
   return surface
+end
+
+local function reset_balances()
+	for player_index, _ in pairs(players_money) do
+		players_money[player_index] = start_player_money
+	end
+	for force_index, _ in pairs(forces_money) do
+		forces_money[force_index] = start_force_money
+	end
+end
+
+local function reset_player_balance(player_index)
+	players_money[player_index] = start_player_money
+end
+
+local function reset_force_balance(force)
+	forces_money[force.index] = start_force_money
 end
 
 --#endregion
@@ -134,6 +154,10 @@ end
 
 local function on_pre_deleted_team(event)
 	forces_money[event.force.index] = nil
+end
+
+local function on_player_accepted_invite(event)
+	game.get_player(event.player_index).force = event.force
 end
 
 --#endregion
@@ -347,15 +371,20 @@ local function set_money_command(cmd)
 		return
 	end
 
-	local target = (#args == 2 and game.get_player(args[1])) or caller
-	if not (target and target.valid) then
-		caller.print("\"" .. args[1] .. "\" player doesn't exist")
-		return
+	local target
+	if #args == 2 then
+		target = game.get_player(args[1])
+		if not (target and target.valid) then
+			caller.print({"player-doesnt-exist", args[1]})
+			return
+		end
 	else
-		players_money[target.index] = amount
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = target.index, balance = amount})
-		caller.print(target.name .. "'s balance: " .. amount)
+		target = caller
 	end
+
+	players_money[target.index] = amount
+	script.raise_event(custom_events.on_updated_player_balance, {player_index = target.index, balance = amount})
+	caller.print(target.name .. "'s balance: " .. amount)
 end
 
 local function set_team_money_command(cmd)
@@ -369,15 +398,20 @@ local function set_team_money_command(cmd)
 		return
 	end
 
-	local target = (#args == 2 and game.forces[args[1]]) or caller.force
-	if not (target and target.valid) then
-		caller.print("\"" .. args[1] .. "\" team doesn't exist")
-		return
+	local target
+	if #args == 2 then
+		target = game.forces[args[1]]
+		if not (target and target.valid) then
+			caller.print({"force-doesnt-exist", args[1]})
+			return
+		end
 	else
-		forces_money[target.index] = amount
-		script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = amount})
-		caller.print(target.name .. "'s balance: " .. amount)
+		target = caller.force
 	end
+
+	forces_money[target.index] = amount
+	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = amount})
+	caller.print(target.name .. "'s balance: " .. amount)
 end
 
 local function deposit_money_command(cmd)
@@ -464,15 +498,20 @@ local function deposit_team_money_command(cmd)
 		return
 	end
 
-	local target = (#args == 2 and game.forces[args[1]]) or caller.force
-	if not (target and target.valid) then
-		caller.print("\"" .. args[1] .. "\" team doesn't exist")
-		return
+	local target
+	if #args == 2 then
+		target = game.forces[args[1]]
+		if not (target and target.valid) then
+			caller.print({"force-doesnt-exist", args[1]})
+			return
+		end
 	else
-		forces_money[target.index] = forces_money[target.index] + amount
-		script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
-		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+		target = caller.force
 	end
+
+	forces_money[target.index] = forces_money[target.index] + amount
+	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
 local function withdraw_team_money_command(cmd)
@@ -486,15 +525,20 @@ local function withdraw_team_money_command(cmd)
 		return
 	end
 
-	local target = (#args == 2 and game.forces[args[1]]) or caller.force
-	if not (target and target.valid) then
-		caller.print("\"" .. args[1] .. "\" team doesn't exist")
-		return
+	local target
+	if #args == 2 then
+		target = game.forces[args[1]]
+		if not (target and target.valid) then
+			caller.print({"force-doesnt-exist", args[1]})
+			return
+		end
 	else
-		forces_money[target.index] = forces_money[target.index] - amount
-		script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
-		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+		target = caller.force
 	end
+
+	forces_money[target.index] = forces_money[target.index] - amount
+	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
 local function pay_command(cmd)
@@ -518,7 +562,7 @@ local function pay_command(cmd)
 
 	local target = game.get_player(args[1])
 	if not (target and target.valid) then
-		caller.print("\"" .. args[1] .. "\" player doesn't exist")
+		caller.print({"player-doesnt-exist", args[1]})
 		return
 	elseif target == caller then
 		caller.print("You can't pay yourself")
@@ -554,7 +598,7 @@ local function balance_command(cmd)
 		else
 			target = game.get_player(cmd.parameter)
 			if not (target and target.valid) then
-				caller.print("\"" .. cmd.parameter .. "\" player doesn't exist")
+				caller.print({"player-doesnt-exist", cmd.parameter})
 				return
 			end
 		end
@@ -582,7 +626,7 @@ local function team_balance_command(cmd)
 		else
 			target = game.forces[cmd.parameter]
 			if not (target and target.valid) then
-				caller.print("\"" .. cmd.parameter .. "\" team doesn't exist")
+				caller.print({"force-doesnt-exist", cmd.parameter})
 				return
 			end
 		end
@@ -617,7 +661,7 @@ local function transfer_team_money_command(cmd)
 	if #args == 2 then
 		target = game.forces[args[1]]
 		if not (target and target.valid) then
-			caller.print("\"" .. args[1] .. "\" team doesn't exist")
+			caller.print({"force-doesnt-exist", args[1]})
 			return
 		elseif target == caller.force then
 			caller.print("You can't transfer money to your own team", RED_COLOR)
@@ -764,14 +808,9 @@ remote.add_interface("EasyAPI", {
 	-- set_locked_teams = function(bool)
 	-- 	mod_data.locked_teams = bool
 	-- end,
-	reset_money = function()
-		for player_index, _ in pairs(players_money) do
-			players_money[player_index] = start_player_money
-		end
-		for force_index, _ in pairs(forces_money) do
-			forces_money[force_index] = start_force_money
-		end
-	end,
+	reset_balances = reset_balances,
+	reset_player_balance = reset_player_balance,
+	reset_force_balance = reset_force_balance,
 	get_player_money = function(player_index)
 		return players_money[player_index]
 	end,
@@ -811,7 +850,9 @@ M.events = {
 	[defines.events.on_forces_merging] = on_forces_merging,
 	[defines.events.on_forces_merged] = on_forces_merged,
 	[custom_events.on_new_team] = on_new_team,
-	[custom_events.on_pre_deleted_team] = on_pre_deleted_team
+	[custom_events.on_pre_deleted_team] = on_pre_deleted_team,
+	[custom_events.on_round_start] = reset_balances,
+	[custom_events.on_player_accepted_invite] = on_player_accepted_invite
 }
 
 M.commands = {
