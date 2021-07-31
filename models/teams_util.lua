@@ -21,6 +21,38 @@ local on_player_accepted_invite_event
 M.custom_events = {}
 
 
+---@return LuaForce|nil
+M.create_team = function(name)
+	if name > 52 then
+		log({"too-long-team-name"})
+		return
+	end
+
+	-- for compability with other mods/scenarios and forces count max = 64 (https://lua-api.factorio.com/1.1.30/LuaGameScript.html#LuaGameScript.create_force)
+	if #game.forces >= 60 then log({"teams.too_many"}) return end
+	if game.forces[name] then
+		log({"gui-map-editor-force-editor.new-force-name-already-used", name})
+		return
+	end
+	if name:find(" ") then
+		log("Whitespaces aren't allowed for teams")
+		return
+	end
+
+	local new_team = game.create_force(name)
+	remote.call("EasyAPI", "add_team", new_team)
+	return new_team
+end
+
+M.add_team = function(force)
+	remote.call("EasyAPI", "add_team", force)
+end
+
+M.remove_team = function(force)
+	remote.call("EasyAPI", "remove_team", force.index)
+end
+
+
 M.on_load = function()
 	on_team_lost_event = remote.call("EasyAPI", "get_event_name", "on_team_lost")
 	on_team_won_event = remote.call("EasyAPI", "get_event_name", "on_team_won")

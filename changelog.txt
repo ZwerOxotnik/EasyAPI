@@ -1,4 +1,17 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.2.2
+Date: 2021-07-31
+  Changes:
+    - Changed general_util.lua
+    - Changed teams_util.lua
+    - CHanged remote interface
+  Bugfixes:
+    - Fixed interactions with players/forces who don't have balance
+    - Added missed event when new team added via remote interface
+    - Fixed description for commands
+    - Fixed /pay with invalid data
+    - Fixed /withdraw-money
+---------------------------------------------------------------------------------------------------
 Version: 0.2.1
 Date: 2021-07-30
   Changes:
@@ -10,10 +23,11 @@ Date: 2021-07-30
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 2021-07-30
-  Changes:
-    - Teams are more stable
+  Features:
     - Added parts of economy (not fully ready)
     - New commands for economy (not fully ready)
+  Changes:
+    - Teams are more stable
     - Changed API
   Bugfixes:
     - Some bugfixes for permissions, commands

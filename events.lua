@@ -27,8 +27,8 @@ return {
 	-- Money
   on_updated_force_balance = script.generate_event_name(), -- {force = force, balance = float}
   on_updated_player_balance = script.generate_event_name(), -- {target = player.index, balance = float}
-  on_transfered_player_money = script.generate_event_name(), -- {target = player.index, player_index = player.index}
-  on_transfered_force_money = script.generate_event_name(), -- {target = force, source = force, [cause]}
+  on_transfered_player_money = script.generate_event_name(), -- {receiver_index = player.index, payer_index = player.index}
+  on_transfered_force_money = script.generate_event_name(), -- {receiver = force, payer = force}
 
 	-- Spawn
 	on_new_global_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}

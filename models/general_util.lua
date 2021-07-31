@@ -20,6 +20,16 @@ local on_toggle_event
 M.custom_events = {}
 
 
+---@return table<string, integer>
+M.get_events = function()
+	return remote.call("EasyAPI", "get_events")
+end
+
+M.get_data = function()
+	return remote.call("EasyAPI", "get_data")
+end
+
+
 M.on_load = function()
 	on_reload_scenario_event = remote.call("EasyAPI", "get_event_name", "on_reload_scenario")
 	on_new_character_event = remote.call("EasyAPI", "get_event_name", "on_new_character")

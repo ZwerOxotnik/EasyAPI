@@ -21,8 +21,9 @@ local default_permission_group = settings.global["default-permission-group"].val
 --#region Constants
 local custom_events = require("events")
 local constant_forces = {neutral = true, player = true, enemy = true}
-local red_color = {1,0,0}
-local yellow_color = {1,1,0}
+local RED_COLOR = {1,0,0}
+local YELLOW_COLOR = {1,1,0}
+local MAX_FORCE_NAME_LENGTH = 52
 --#endregion
 
 
@@ -46,6 +47,12 @@ end
 
 local function clear_player_data(event)
 	players_money[event.player_index] = nil
+end
+
+local create_lobby_surface = function()
+  local surface = game.create_surface("Lobby", {width = 1, height = 1})
+  surface.set_tiles({{name = "out-of-map", position = {1,1}}})
+  return surface
 end
 
 --#endregion
@@ -196,7 +203,7 @@ local function show_team_command(cmd)
 	if cmd.parameter == nil then
 		if cmd.player_index == 0 then return end
 		cmd.parameter = caller.force.name
-	elseif #cmd.parameter > 52 then
+	elseif #cmd.parameter > MAX_FORCE_NAME_LENGTH then
 		print_to_caller({"too-long-team-name"}, caller)
 		return
 	else
@@ -257,7 +264,7 @@ end
 local function create_new_team_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 
-	if #cmd.parameter > 52 then
+	if #cmd.parameter > MAX_FORCE_NAME_LENGTH then
 		caller.print({"too-long-team-name"}, cmd.player_index)
 		return
 	end
@@ -270,7 +277,7 @@ local function create_new_team_command(cmd)
 		return
 	end
 	if team_name:find(" ") then
-		caller.print("Whitespaces aren't allowed for teams", red_color)
+		caller.print("Whitespaces aren't allowed for teams", RED_COLOR)
 		return
 	end
 
@@ -307,6 +314,7 @@ local function remove_team_command(cmd)
 	game.merge_forces(target_force, game.forces["player"])
 end
 
+-- TODO: improve
 local function friendly_fire_command(cmd)
 	local friendly_fire_state
 
@@ -377,6 +385,16 @@ local function deposit_money_command(cmd)
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player_index = cmd.player_index
 	local caller = game.get_player(player_index)
+	if players_money[player_index] == nil then
+		caller.print("You does't have balance")
+		return
+	end
+
+	local force = caller.force
+	if forces_money[force.index] == nil then
+		caller.print("Your force doesn't have balance")
+		return
+	end
 
 	local amount = tonumber(args[1])
 	if amount == nil then
@@ -384,25 +402,36 @@ local function deposit_money_command(cmd)
 		return
 	end
 
-	local force = caller.force
 	local result = players_money[caller.index] - amount
 	if result > 0 then
 		players_money[caller.index] = result
 		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
 		forces_money[force.index] = forces_money[force.index] + amount
-		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = forces_money[force.index]})
+		local force_balance = forces_money[force.index]
+		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = force_balance})
 		caller.print("Your balance: " .. result)
-		caller.print(force.name .. "'s balance: " .. forces_money[force.index])
+		caller.print(force.name .. "'s balance: " .. force_balance)
 	else
-		caller.print("Not enough money", yellow_color)
+		caller.print("Not enough money", YELLOW_COLOR)
 	end
 end
 
 local function withdraw_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+
 	local player_index = cmd.player_index
 	local caller = game.get_player(player_index)
+	if players_money[player_index] == nil then
+		caller.print("You does't have balance")
+		return
+	end
+
+	local force = caller.force
+	if forces_money[force.index] == nil then
+		caller.print("Your force doesn't have balance")
+		return
+	end
 
 	local amount = tonumber(args[1])
 	if amount == nil then
@@ -410,17 +439,17 @@ local function withdraw_money_command(cmd)
 		return
 	end
 
-	local force = caller.force
 	local result = forces_money[force.index] - amount
 	if result > 0 then
 		forces_money[force.index] = result
 		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = result})
 		players_money[caller.index] = players_money[caller.index] + amount
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
-		caller.print("Your balance: " .. result)
+		local player_balance = players_money[caller.index]
+		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = player_balance})
+		caller.print("Your balance: " .. player_balance)
 		caller.print(force.name .. "'s balance: " .. result)
 	else
-		caller.print("Not enough money", yellow_color)
+		caller.print("Not enough money", YELLOW_COLOR)
 	end
 end
 
@@ -473,7 +502,13 @@ local function pay_command(cmd)
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
 	local caller = game.get_player(cmd.player_index)
-	if #args < 2 then caller.print({"EasyAPI-commands.pay"}) end
+	if players_money[caller.index] == nil then
+		caller.print("You don't have balance")
+		return
+	elseif #args < 2 then
+		caller.print({"EasyAPI-commands.pay"})
+		return
+	end
 
 	local amount = tonumber(args[2])
 	if amount == nil then
@@ -486,7 +521,10 @@ local function pay_command(cmd)
 		caller.print("\"" .. args[1] .. "\" player doesn't exist")
 		return
 	elseif target == caller then
-		caller.print("You can't pay yourself", red_color)
+		caller.print("You can't pay yourself")
+		return
+	elseif players_money[caller.index] == nil then
+		caller.print("Target doesn't have balance")
 		return
 	else
 		local result = players_money[caller.index] - amount
@@ -494,10 +532,12 @@ local function pay_command(cmd)
 			players_money[caller.index] = result
 			script.raise_event(custom_events.on_updated_player_balance, {target = caller, balance = result})
 			players_money[target.index] = players_money[target.index] + amount
-			script.raise_event(custom_events.on_updated_player_balance, {target = target, balance = players_money[target.index]})
+			local target_balance = players_money[target.index]
+			script.raise_event(custom_events.on_updated_player_balance, {target = target, balance = target_balance})
+			script.raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
 			caller.print("Your balance: " .. result)
 		else
-			caller.print("Not enough money", yellow_color)
+			caller.print("Not enough money", YELLOW_COLOR)
 		end
 	end
 end
@@ -524,8 +564,9 @@ local function balance_command(cmd)
 	if balance then
 		caller.print("Your balance: " .. players_money[caller.index])
 	end
-	if forces_money[target.index] then
-		caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	local force_balance = forces_money[target.index]
+	if force_balance then
+		caller.print(target.name .. "'s balance: " .. force_balance)
 	end
 end
 
@@ -551,14 +592,20 @@ local function team_balance_command(cmd)
 	if forces_money[force.index] then
 		caller.print(target.name .. "'s balance: " .. forces_money[force.index])
 	else
-		caller.print("No balance for the force", red_color)
+		caller.print("No balance for the force", RED_COLOR)
 	end
 end
 
 local function transfer_team_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
+
 	local caller = game.get_player(cmd.player_index)
+	local force = caller.force
+	if forces_money[force.index] == nil then
+		caller.print("Your force doesn't have balance")
+		return
+	end
 
 	local amount = tonumber(args[2] or args[1])
 	if amount == nil then
@@ -573,20 +620,23 @@ local function transfer_team_money_command(cmd)
 			caller.print("\"" .. args[1] .. "\" team doesn't exist")
 			return
 		elseif target == caller.force then
-			caller.print("You can't transfer money to your own team", red_color)
+			caller.print("You can't transfer money to your own team", RED_COLOR)
+			return
+		elseif forces_money[target.index] == nil then
+			caller.print("Target force doesn't have balance")
 			return
 		end
 
-		local force = caller.force
 		local result = forces_money[force.index] - amount
 		if result > 0 then
 			forces_money[force.index] = result
 			script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = result})
 			forces_money[target.index] = forces_money[target.index] + amount
 			script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+			script.raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
 			caller.print(force.name .. "'s balance: " .. result)
 		else
-			caller.print("Not enough money", yellow_color)
+			caller.print("Not enough money", YELLOW_COLOR)
 		end
 	else--if #args == 1 then
 		target = caller.force
@@ -598,7 +648,7 @@ local function transfer_team_money_command(cmd)
 			script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
 			caller.print("Your balance: " .. players_money[caller.index])
 		else
-			caller.print("Not enough money", yellow_color)
+			caller.print("Not enough money", YELLOW_COLOR)
 		end
 	end
 end
@@ -623,9 +673,10 @@ local function update_global_data()
 
 	link_data()
 
-	local group = game.permissions.get_group("admins")
+	local permissions = game.permissions
+	local group = permissions.get_group("admins")
 	if group == nil then
-		game.permissions.create_group("admins")
+		permissions.create_group("admins")
 	end
 
 	if #teams == 0 then
@@ -671,6 +722,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	add_team = function(force)
 		teams[force.index] = force.name
+		script.raise_event(custom_events.on_new_team, {force = force})
 	end,
 	get_teams = function()
 		return teams
