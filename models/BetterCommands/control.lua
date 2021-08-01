@@ -92,7 +92,7 @@ local function add_custom_command(command_settings, original_func)
 		end
 	end
 
-	local command_description = command_settings.description or {"EasyAPI-commands." .. command_name}
+	local command_description = command_settings.description or {"EasyAPI-commands." .. command_settings.name}
 	commands.add_command(command_name, command_description, function(cmd)
 		if cmd.player_index == 0 then
 			if command_settings.allow_for_server == false then
