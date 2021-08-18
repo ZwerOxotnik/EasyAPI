@@ -16,6 +16,11 @@ return {
 	on_pre_deleted_team = script.generate_event_name(), -- {force = force}
   on_team_invited = script.generate_event_name(), -- {player_index = player.index, force = force}
   on_player_accepted_invite = script.generate_event_name(), -- {player_index = player.index, force = force}
+	-- Called when a force surrendered.
+	--	Contains:
+	--		force :: LuaForce: The force to be surrender
+	--		destination :: LuaForce (optional): The force to reassign entities to.
+	on_surrender = script.generate_event_name(),
 
 	-- Called when someone/something was kicked from a team.
 	--	Contains:
