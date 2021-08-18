@@ -32,7 +32,7 @@ M.custom_events = {}
 
 ---@param force LuaForce
 ---@param other_force LuaForce|string
----@return string "ally"|"neutral"|"enemy"
+---@return string #ally|neutral|enemy
 local function get_stance_diplomacy(force, other_force)
 	if force.get_friend(other_force) then
 		return "ally"
@@ -58,7 +58,7 @@ M.get_stance_diplomacy_type = function(force, other_force)
 end
 
 ---@param type DIPLOMACY_TYPES
----@return string "ally"|"neutral"|"enemy"
+---@return string #ally|neutral|enemy
 M.get_stance_name_diplomacy_by_type = function(type)
 	if type == ALLY_TYPE then
 		return "ally"
