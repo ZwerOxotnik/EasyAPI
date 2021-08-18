@@ -25,6 +25,7 @@ M.get_events = function()
 	return remote.call("EasyAPI", "get_events")
 end
 
+---@return table<string, table>
 M.get_data = function()
 	return remote.call("EasyAPI", "get_data")
 end

@@ -21,6 +21,7 @@ local on_player_accepted_invite_event
 M.custom_events = {}
 
 
+---@param name string
 ---@return LuaForce|nil
 M.create_team = function(name)
 	if name > 52 then
@@ -44,10 +45,12 @@ M.create_team = function(name)
 	return new_team
 end
 
+---@param force LuaForce
 M.add_team = function(force)
 	remote.call("EasyAPI", "add_team", force)
 end
 
+---@param force LuaForce
 M.remove_team = function(force)
 	remote.call("EasyAPI", "remove_team", force.index)
 end
