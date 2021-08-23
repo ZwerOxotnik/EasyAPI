@@ -85,7 +85,7 @@ local function on_player_created(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
 	if player.admin then
-		game.permissions.get_group("admins").add_player(player)
+		game.permissions.get_group("Admin").add_player(player)
 	end
 	players_money[player_index] = start_player_money
 	script.raise_event(custom_events.on_updated_player_balance, {player_index = player_index, balance = start_player_money})
@@ -99,7 +99,7 @@ local function on_player_changed_force(event)
 end
 
 local function on_player_promoted(event)
-	game.permissions.get_group("admins").add_player(game.get_player(event.player_index))
+	game.permissions.get_group("Admin").add_player(game.get_player(event.player_index))
 end
 
 local function on_pre_player_removed(event)
@@ -114,7 +114,7 @@ end
 
 local function on_player_demoted(event)
 	local player = game.get_player(event.player_index)
-	if player.permission_group.name == "admins" then
+	if player.permission_group.name == "Admin" then
 		game.permissions.get_group(default_permission_group).add_player(player)
 	end
 end
@@ -722,9 +722,9 @@ local function update_global_data()
 	link_data()
 
 	local permissions = game.permissions
-	local group = permissions.get_group("admins")
+	local group = permissions.get_group("Admin")
 	if group == nil then
-		permissions.create_group("admins")
+		permissions.create_group("Admin")
 	end
 
 	if #teams == 0 then
