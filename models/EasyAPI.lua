@@ -1,3 +1,5 @@
+local team_util = require("models/team_util")
+
 ---@class EasyAPI : module
 local M = {}
 
@@ -24,7 +26,7 @@ local custom_events = require("events")
 local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
-local MAX_FORCE_NAME_LENGTH = 52
+local MAX_TEAM_NAME_LENGTH = 32
 --#endregion
 
 
@@ -230,7 +232,7 @@ local function show_team_command(cmd)
 	if cmd.parameter == nil then
 		if cmd.player_index == 0 then return end
 		cmd.parameter = caller.force.name
-	elseif #cmd.parameter > MAX_FORCE_NAME_LENGTH then
+	elseif #cmd.parameter > 52 then
 		print_to_caller({"too-long-team-name"}, caller)
 		return
 	else
@@ -292,26 +294,16 @@ end
 local function create_new_team_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 
-	if #cmd.parameter > MAX_FORCE_NAME_LENGTH then
-		caller.print({"too-long-team-name"}, cmd.player_index)
+	if #cmd.parameter > (MAX_TEAM_NAME_LENGTH + 2) then
+		caller.print({"too-long-team-name"}, RED_COLOR)
 		return
 	end
 	local team_name = trim(cmd.parameter)
 
-	-- for compability with other mods/scenarios and forces count max = 64 (https://lua-api.factorio.com/1.1.30/LuaGameScript.html#LuaGameScript.create_force)
-	if #game.forces >= 60 then caller.print({"teams.too_many"}) return end
-	if game.forces[team_name] then
-		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", team_name})
-		return
-	end
-	if team_name:find(" ") then
-		caller.print("Whitespaces aren't allowed for teams", RED_COLOR)
-		return
-	end
+	local new_team = team_util.create_team(team_name, caller)
+	if new_team == nil then return end
 
-	local new_team = game.create_force(team_name)
-	teams[new_team.index] = team_name
-	script.raise_event(custom_events.on_new_team, {force = new_team})
+	-- TODO: improve
 	if #caller.force.players == 1 and not constant_forces[caller.force.name] then
 		local technologies = new_team.technologies
 		for name, tech in pairs(caller.force.technologies) do

@@ -7,6 +7,13 @@
 local M = {}
 
 
+--#region constants
+
+local RED_COLOR = {1, 0, 0}
+
+--#endregion
+
+
 -- Events
 local on_team_lost_event
 local on_team_won_event
@@ -21,22 +28,40 @@ local on_player_accepted_invite_event
 M.custom_events = {}
 
 
+-- Doesn't check team name length
 ---@param name string
+---@return boolean
+local function is_team_name_valid(name)
+	local result = string.match(name, "[A-z][A-z0-9_-]+")
+	if result then
+		return (#name == #result)
+	else
+		return false
+	end
+end
+M.is_team_name_valid = is_team_name_valid
+
+
+---@param name string
+---@param caller LuaForce|LuaPlayer|game
 ---@return LuaForce|nil
-M.create_team = function(name)
-	if name > 52 then
-		log({"too-long-team-name"})
+M.create_team = function(name, caller)
+	if #name > 32 then
+		caller.print({"too-long-team-name"}, RED_COLOR)
 		return
 	end
 
-	-- for compability with other mods/scenarios and forces count max = 64 (https://lua-api.factorio.com/1.1.30/LuaGameScript.html#LuaGameScript.create_force)
-	if #game.forces >= 60 then log({"teams.too_many"}) return end
-	if game.forces[name] then
-		log({"gui-map-editor-force-editor.new-force-name-already-used", name})
+	-- for compability with other mods/scenarios and forces count max = 64 (https://lua-api.factorio.com/1.1.38/LuaGameScript.html#LuaGameScript.create_force)
+	if #game.forces >= 60 then
+		caller.print({"teams.too_many"})
 		return
 	end
-	if name:find(" ") then
-		log("Whitespaces aren't allowed for teams")
+	if game.forces[name] then
+		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", name})
+		return
+	end
+	if is_team_name_valid(name) == false then
+		caller.print("The name contains invalid symbols", RED_COLOR)
 		return
 	end
 
