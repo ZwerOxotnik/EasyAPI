@@ -27,6 +27,7 @@ local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
+local on_updated_force_balance_event = custom_events.on_updated_force_balance
 --#endregion
 
 
@@ -245,6 +246,7 @@ local function show_team_command(cmd)
 		return
 	end
 
+	-- TODO: optimize
 	local function get_players(force)
 		local list = ""
 		local count = 0
@@ -406,7 +408,7 @@ local function set_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = amount
-	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = amount})
+	script.raise_event(on_updated_force_balance_event, {force = target, balance = amount})
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
@@ -427,7 +429,7 @@ local function deposit_money_command(cmd)
 	end
 
 	local amount = tonumber(args[1])
-	if amount == nil then
+	if amount == nil or amount <= 0 then
 		caller.print({"EasyAPI-commands.deposit-money"})
 		return
 	end
@@ -438,7 +440,7 @@ local function deposit_money_command(cmd)
 		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
 		forces_money[force.index] = forces_money[force.index] + amount
 		local force_balance = forces_money[force.index]
-		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = force_balance})
+		script.raise_event(on_updated_force_balance_event, {force = force, balance = force_balance})
 		caller.print("Your balance: " .. result)
 		caller.print(force.name .. "'s balance: " .. force_balance)
 	else
@@ -464,18 +466,20 @@ local function withdraw_money_command(cmd)
 	end
 
 	local amount = tonumber(args[1])
-	if amount == nil then
+	if amount == nil or amount <= 0 then
 		caller.print({"EasyAPI-commands.withdraw-money"})
 		return
 	end
 
-	local result = forces_money[force.index] - amount
+	local force_index = force.index
+	local result = forces_money[force_index] - amount
 	if result > 0 then
-		forces_money[force.index] = result
-		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = result})
-		players_money[caller.index] = players_money[caller.index] + amount
-		local player_balance = players_money[caller.index]
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = player_balance})
+		forces_money[force_index] = result
+		script.raise_event(on_updated_force_balance_event, {force = force, balance = result})
+		local caller_index = caller.index
+		players_money[caller_index] = players_money[caller_index] + amount
+		local player_balance = players_money[caller_index]
+		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller_index, balance = player_balance})
 		caller.print("Your balance: " .. player_balance)
 		caller.print(force.name .. "'s balance: " .. result)
 	else
@@ -489,7 +493,7 @@ local function deposit_team_money_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 
 	local amount = tonumber(args[2] or args[1])
-	if amount == nil then
+	if amount == nil or amount <= 0 then
 		caller.print({"EasyAPI-commands.deposit-team-money"})
 		return
 	end
@@ -506,7 +510,7 @@ local function deposit_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = forces_money[target.index] + amount
-	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+	script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target.index]})
 	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
@@ -516,7 +520,7 @@ local function withdraw_team_money_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 
 	local amount = tonumber(args[2] or args[1])
-	if amount == nil then
+	if amount == nil or amount <= 0 then
 		caller.print({"EasyAPI-commands.withdraw-team-money"})
 		return
 	end
@@ -533,7 +537,7 @@ local function withdraw_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = forces_money[target.index] - amount
-	script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+	script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target.index]})
 	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
@@ -551,7 +555,7 @@ local function pay_command(cmd)
 	end
 
 	local amount = tonumber(args[2])
-	if amount == nil then
+	if amount == nil or amount < 0 then
 		caller.print({"EasyAPI-commands.pay"})
 		return
 	end
@@ -584,17 +588,18 @@ end
 
 local function balance_command(cmd)
 	local caller = game.get_player(cmd.player_index)
+	local parameter = cmd.parameter
 	local target
-	if cmd.parameter == nil then
+	if parameter == nil then
 		target = caller.force
 	else
-		cmd.parameter = trim(cmd.parameter)
-		if cmd.parameter == '' then
+		parameter = trim(parameter)
+		if parameter == '' then
 			target = caller.force
 		else
-			target = game.get_player(cmd.parameter)
+			target = game.get_player(parameter)
 			if not (target and target.valid) then
-				caller.print({"player-doesnt-exist", cmd.parameter})
+				caller.print({"player-doesnt-exist", parameter})
 				return
 			end
 		end
@@ -612,17 +617,18 @@ end
 
 local function team_balance_command(cmd)
 	local caller = game.get_player(cmd.player_index)
+	local parameter = cmd.parameter
 	local target
-	if cmd.parameter == nil then
+	if parameter == nil then
 		target = caller.force
 	else
-		cmd.parameter = trim(cmd.parameter)
-		if cmd.parameter == '' then
+		parameter = trim(parameter)
+		if parameter == '' then
 			target = caller.force
 		else
-			target = game.forces[cmd.parameter]
+			target = game.forces[parameter]
 			if not (target and target.valid) then
-				caller.print({"force-doesnt-exist", cmd.parameter})
+				caller.print({"force-doesnt-exist", parameter})
 				return
 			end
 		end
@@ -648,7 +654,7 @@ local function transfer_team_money_command(cmd)
 	end
 
 	local amount = tonumber(args[2] or args[1])
-	if amount == nil then
+	if amount == nil or amount <= 0 then
 		caller.print({"EasyAPI-commands.transfer-team-money"})
 		return
 	end
@@ -669,10 +675,11 @@ local function transfer_team_money_command(cmd)
 
 		local result = forces_money[force.index] - amount
 		if result > 0 then
+			local target_index = target.index
 			forces_money[force.index] = result
-			script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = result})
-			forces_money[target.index] = forces_money[target.index] + amount
-			script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
+			script.raise_event(on_updated_force_balance_event, {force = force, balance = result})
+			forces_money[target_index] = forces_money[target_index] + amount
+			script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target_index]})
 			script.raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
 			caller.print(force.name .. "'s balance: " .. result)
 		else
@@ -680,13 +687,15 @@ local function transfer_team_money_command(cmd)
 		end
 	else--if #args == 1 then
 		target = caller.force
-		local result = players_money[caller.index] - amount
+		local caller_index = caller.index
+		local result = players_money[caller_index] - amount
 		if result > 0 then
-			players_money[caller.index] = result
-			script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
-			forces_money[target.index] = forces_money[target.index] + amount
-			script.raise_event(custom_events.on_updated_force_balance, {force = target, balance = forces_money[target.index]})
-			caller.print("Your balance: " .. players_money[caller.index])
+			local target_index = target.index
+			players_money[caller_index] = result
+			script.raise_event(custom_events.on_updated_player_balance, {player_index = caller_index, balance = result})
+			forces_money[target_index] = forces_money[target_index] + amount
+			script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target_index]})
+			caller.print("Your balance: " .. players_money[caller_index])
 		else
 			caller.print("Not enough money", YELLOW_COLOR)
 		end
@@ -700,16 +709,17 @@ end
 
 local function link_data()
 	mod_data = global.EasyAPI
-	teams = global.EasyAPI.teams
-	players_money = global.EasyAPI.players_money
-	forces_money = global.EasyAPI.forces_money
+	teams = mod_data.teams
+	players_money = mod_data.players_money
+	forces_money = mod_data.forces_money
 end
 
 local function update_global_data()
 	global.EasyAPI = global.EasyAPI or {}
-	global.EasyAPI.teams = global.EasyAPI.teams or {}
-	global.EasyAPI.players_money = global.EasyAPI.players_money or {}
-	global.EasyAPI.forces_money = global.EasyAPI.forces_money or {}
+	mod_data = global.EasyAPI
+	mod_data.teams = mod_data.teams or {}
+	mod_data.players_money = mod_data.players_money or {}
+	mod_data.forces_money = mod_data.forces_money or {}
 
 	link_data()
 
@@ -819,7 +829,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	set_force_money = function(force, amount)
 		forces_money[force.index] = amount
-		script.raise_event(custom_events.on_updated_force_balance, {force = force, balance = amount})
+		script.raise_event(on_updated_force_balance_event, {force = force, balance = amount})
 	end
 })
 
