@@ -23,6 +23,7 @@ money_printer.fast_replaceable_group = nil
 money_printer.energy_usage = "750kW"
 money_printer.allowed_effects = nil
 money_printer.next_upgrade = nil
+money_printer.crafting_speed = 1
 money_printer.base_productivity = 0
 money_printer.crafting_categories = {"money"}
 local money_printer_recipe = table.deepcopy(data.raw.recipe["assembling-machine-1"])
