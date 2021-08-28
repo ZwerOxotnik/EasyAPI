@@ -865,6 +865,9 @@ remote.add_interface("EasyAPI", {
 	get_player_money = function(player_index)
 		return players_money[player_index]
 	end,
+	get_forces_money = function()
+		return forces_money
+	end,
 	get_force_money = function(force_index)
 		return forces_money[force_index]
 	end,
