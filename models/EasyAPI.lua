@@ -53,6 +53,12 @@ local function clear_player_data(event)
 	players_money[event.player_index] = nil
 end
 
+local function get_distance(start, stop)
+	local xdiff = start.x - stop.x
+	local ydiff = start.y - stop.y
+	return (xdiff * xdiff + ydiff * ydiff)^0.5
+end
+
 local function create_lobby_surface()
 	local surface = game.get_surface("Lobby")
 	if surface then return surface end
@@ -75,8 +81,34 @@ local function reset_player_balance(player_index)
 	players_money[player_index] = start_player_money
 end
 
+---@param force LuaForce
 local function reset_force_balance(force)
 	forces_money[force.index] = start_force_money
+end
+
+---@param player LuaPLayer
+---@param data table #players_money|forces_money
+---@param index number
+local function convert_money(player, data, index)
+	local count = player.get_item_count("coin")
+	if count > 0 then
+		player.remove_item{name = "coin", count = count}
+	end
+	local entity = player.selected
+	if entity and entity.valid and entity.force == player.force and entity.operable then
+		if get_distance(player.position, entity.position) <= 10 then
+			local count_in_entity = entity.get_item_count("coin")
+			if count_in_entity > 0 then
+				count = entity.remove_item({name = "coin", count = count_in_entity}) + count
+			end
+		end
+	end
+	if count > 0 then
+		data[index] = data[index] + count
+		player.print("Added: " .. count)
+	else
+		player.print("Nothing found")
+	end
 end
 
 --#endregion
@@ -702,6 +734,19 @@ local function transfer_team_money_command(cmd)
 	end
 end
 
+local function convert_money_command(cmd)
+	local player_index = cmd.player_index
+	local player = game.get_player(player_index)
+	local force_index = player.force.index
+	if forces_money[force_index] then
+		convert_money(player, forces_money, force_index)
+	elseif players_money[player_index] then
+		convert_money(player, forces_money, player_index)
+	else
+		player.print("No balance")
+	end
+end
+
 --#endregion
 
 
@@ -875,6 +920,7 @@ M.commands = {
 	deposit_team_money = deposit_team_money_command,
 	withdraw_team_money = withdraw_team_money_command,
 	transfer_team_money = transfer_team_money_command,
+	convert_money = convert_money_command,
 	pay = pay_command,
 	balance = balance_command,
 	team_balance = team_balance_command
