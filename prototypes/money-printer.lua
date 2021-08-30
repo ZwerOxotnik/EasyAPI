@@ -2,6 +2,7 @@ local function create_recipe(count)
 	data:extend({{
 			type = "recipe",
 			name = "copper-coin-" .. count,
+			subgroup = "coins",
 			category = "money",
 			enabled = true,
 			ingredients = {{"copper-plate", count}},
@@ -15,6 +16,7 @@ end
 create_recipe(100)
 create_recipe(1000)
 create_recipe(5000)
+
 
 local money_printer = table.deepcopy(data.raw["assembling-machine"]["assembling-machine-1"])
 money_printer.name = "money-printer"
@@ -37,7 +39,7 @@ data:extend({
 		name = money_printer.name,
 		icon = "__base__/graphics/icons/assembling-machine-1.png",
 		icon_size = 64, icon_mipmaps = 4,
-		subgroup = "production-machine",
+		subgroup = "coins",
 		order = "a[" .. money_printer.name .. "]",
 		place_result = money_printer.name,
 		stack_size = 50
