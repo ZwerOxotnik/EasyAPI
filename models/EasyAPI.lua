@@ -878,9 +878,18 @@ remote.add_interface("EasyAPI", {
 		players_money[player_index] = amount
 		script.raise_event(custom_events.on_updated_player_balance, {player_index = player_index, balance = amount})
 	end,
+	set_force_money_by_index = function(force_index, amount)
+		forces_money[force_index] = amount or 0
+	end,
 	set_force_money = function(force, amount)
 		forces_money[force.index] = amount
 		script.raise_event(on_updated_force_balance_event, {force = force, balance = amount})
+	end,
+	deposit_force_money = function(force, amount)
+		local force_index = force.index
+		local new_amount = (forces_money[force_index] or 0) + (amount or 0)
+		forces_money[force_index] = new_amount
+		script.raise_event(on_updated_force_balance_event, {force = force, balance = new_amount})
 	end
 })
 
