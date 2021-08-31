@@ -862,6 +862,9 @@ remote.add_interface("EasyAPI", {
 	reset_balances = reset_balances,
 	reset_player_balance = reset_player_balance,
 	reset_force_balance = reset_force_balance,
+	get_players_money = function()
+		return players_money
+	end,
 	get_player_money = function(player_index)
 		return players_money[player_index]
 	end,
