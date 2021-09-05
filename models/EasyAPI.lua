@@ -186,6 +186,10 @@ local function on_forces_merged(event)
 	teams[event.source_index] = nil
 end
 
+local function on_force_created(event)
+	forces_money[event.force.index] = start_force_money
+end
+
 local function on_new_team(event)
 	forces_money[event.force.index] = start_force_money
 end
@@ -887,7 +891,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	deposit_force_money = function(force, amount)
 		local force_index = force.index
-		local new_amount = (forces_money[force_index] or 0) + (amount or 0)
+		local new_amount = (forces_money[force_index] or 0) + amount
 		forces_money[force_index] = new_amount
 		script.raise_event(on_updated_force_balance_event, {force = force, balance = new_amount})
 	end
@@ -915,7 +919,8 @@ M.events = {
 	[defines.events.on_player_removed] = clear_player_data,
 	[defines.events.on_forces_merging] = on_forces_merging,
 	[defines.events.on_forces_merged] = on_forces_merged,
-	[custom_events.on_new_team] = on_new_team,
+	[defines.events.on_force_created] = on_force_created,
+	[custom_events.on_new_team] = on_new_team, -- TODO: check
 	[custom_events.on_pre_deleted_team] = on_pre_deleted_team,
 	[custom_events.on_round_start] = reset_balances,
 	[custom_events.on_player_accepted_invite] = on_player_accepted_invite
