@@ -16,6 +16,6 @@ data:extend({
 	}
 })
 
-if settings.startup["enable-money-printer"].value then
+if settings.startup["EAPI_enable-money-printer"].value then
 	require("prototypes.money-printer")
 end
