@@ -1,0 +1,11 @@
+{
+  "mod-setting":
+  [
+    [ "who-decides-diplomacy", "EAPI_who-decides-diplomacy" ],
+    [ "start-player-money", "EAPI_start-player-money" ],
+    [ "start-force-money", "EAPI_start-force-money" ],
+    [ "default-permission-group", "EAPI_default-permission-group" ],
+    [ "default-force-name", "EAPI_default-force-name" ],
+    [ "enable-money-printer", "EAPI_enable-money-printer" ]
+  ]
+}

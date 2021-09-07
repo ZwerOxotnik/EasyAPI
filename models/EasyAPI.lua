@@ -22,6 +22,7 @@ local default_force_name = settings.global["default-force-name"].value
 
 
 --#region Constants
+local match = string.match
 local custom_events = require("events")
 local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
@@ -158,21 +159,19 @@ local function on_game_created_from_scenario(event)
 	script.raise_event(custom_events.on_new_team, {force = game.forces.player})
 end
 
+local mod_settings = {
+	["EAPI_who-decides-diplomacy"] = function(value) who_decides_diplomacy = value end,
+	["EAPI_default-permission-group"] = function(value) default_permission_group = value end, -- TODO: check the permission group
+	["EAPI_start-player-money"] = function(value) start_player_money = value end,
+	["EAPI_start-force-money"] = function(value) start_force_money = value end,
+	["EAPI_default-force-name"] = function(value) default_force_name = value end,
+}
 local function on_runtime_mod_setting_changed(event)
 	if event.setting_type ~= "runtime-global" then return end
+	if not match(event.setting, "^EAPI_") then return end
 
-	if event.setting == "who-decides-diplomacy" then
-		who_decides_diplomacy = settings.global[event.setting].value
-	elseif event.setting == "default-permission-group" then
-		default_permission_group = settings.global[event.setting].value
-		-- TODO: check the permission group
-	elseif event.setting == "start-player-money" then
-		start_player_money = settings.global[event.setting].value
-	elseif event.setting == "start-force-money" then
-		start_force_money = settings.global[event.setting].value
-	elseif event.setting == "default-force-name" then
-		default_force_name = settings.global[event.setting].value
-	end
+	local f = mod_settings[event.setting]
+	if f then f(settings.global[event.setting].value) end
 end
 
 local function on_forces_merging(event)
@@ -187,10 +186,6 @@ local function on_forces_merged(event)
 end
 
 local function on_force_created(event)
-	forces_money[event.force.index] = start_force_money
-end
-
-local function on_new_team(event)
 	forces_money[event.force.index] = start_force_money
 end
 
@@ -804,8 +799,29 @@ local function update_global_data()
 end
 
 
-M.on_init = update_global_data
-M.on_configuration_changed = update_global_data
+M.on_init = function()
+	update_global_data()
+	for _, force in pairs(game.forces) do
+		if force.valid and forces_money[force.index] == nil then
+			forces_money[force.index] = start_force_money
+		end
+	end
+end
+M.on_configuration_changed = function(event)
+	update_global_data()
+
+	local mod_changes = event.mod_changes["EasyAPI"]
+	if not (mod_changes and mod_changes.old_version) then return end
+
+	local version = tonumber(string.gmatch(mod_changes.old_version, "%d+.%d+")())
+	if version < 0.5 then
+		for _, force in pairs(game.forces) do
+			if force.valid and forces_money[force.index] == nil then
+				forces_money[force.index] = start_force_money
+			end
+		end
+	end
+end
 M.on_load = link_data
 
 
@@ -891,7 +907,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	deposit_force_money = function(force, amount)
 		local force_index = force.index
-		local new_amount = (forces_money[force_index] or 0) + amount
+		local new_amount = forces_money[force_index] + amount
 		forces_money[force_index] = new_amount
 		script.raise_event(on_updated_force_balance_event, {force = force, balance = new_amount})
 	end
@@ -920,7 +936,6 @@ M.events = {
 	[defines.events.on_forces_merging] = on_forces_merging,
 	[defines.events.on_forces_merged] = on_forces_merged,
 	[defines.events.on_force_created] = on_force_created,
-	[custom_events.on_new_team] = on_new_team, -- TODO: check
 	[custom_events.on_pre_deleted_team] = on_pre_deleted_team,
 	[custom_events.on_round_start] = reset_balances,
 	[custom_events.on_player_accepted_invite] = on_player_accepted_invite
