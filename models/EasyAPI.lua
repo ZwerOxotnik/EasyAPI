@@ -13,11 +13,11 @@ local forces_money
 
 
 --#region Values from settings
-local start_player_money = settings.global["start-player-money"].value
-local start_force_money = settings.global["start-force-money"].value
-local who_decides_diplomacy = settings.global["who-decides-diplomacy"].value
-local default_permission_group = settings.global["default-permission-group"].value
-local default_force_name = settings.global["default-force-name"].value
+local start_player_money = settings.global["EAPI_start-player-money"].value
+local start_force_money = settings.global["EAPI_start-force-money"].value
+local who_decides_diplomacy = settings.global["EAPI_who-decides-diplomacy"].value
+local default_permission_group = settings.global["EAPI_default-permission-group"].value
+local default_force_name = settings.global["EAPI_default-force-name"].value
 --#endregion
 
 
