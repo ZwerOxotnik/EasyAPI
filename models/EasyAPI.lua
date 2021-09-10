@@ -28,7 +28,6 @@ local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
-local on_updated_force_balance_event = custom_events.on_updated_force_balance
 --#endregion
 
 
@@ -124,7 +123,6 @@ local function on_player_created(event)
 		game.permissions.get_group("Admin").add_player(player)
 	end
 	players_money[player_index] = start_player_money
-	script.raise_event(custom_events.on_updated_player_balance, {player_index = player_index, balance = start_player_money})
 end
 
 local function on_player_changed_force(event)
@@ -412,7 +410,6 @@ local function set_money_command(cmd)
 	end
 
 	players_money[target.index] = amount
-	script.raise_event(custom_events.on_updated_player_balance, {player_index = target.index, balance = amount})
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
@@ -439,7 +436,6 @@ local function set_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = amount
-	script.raise_event(on_updated_force_balance_event, {force = target, balance = amount})
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
@@ -468,12 +464,9 @@ local function deposit_money_command(cmd)
 	local result = players_money[caller.index] - amount
 	if result > 0 then
 		players_money[caller.index] = result
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller.index, balance = result})
 		forces_money[force.index] = forces_money[force.index] + amount
-		local force_balance = forces_money[force.index]
-		script.raise_event(on_updated_force_balance_event, {force = force, balance = force_balance})
 		caller.print("Your balance: " .. result)
-		caller.print(force.name .. "'s balance: " .. force_balance)
+		caller.print(force.name .. "'s balance: " .. forces_money[force.index])
 	else
 		caller.print("Not enough money", YELLOW_COLOR)
 	end
@@ -506,11 +499,9 @@ local function withdraw_money_command(cmd)
 	local result = forces_money[force_index] - amount
 	if result > 0 then
 		forces_money[force_index] = result
-		script.raise_event(on_updated_force_balance_event, {force = force, balance = result})
 		local caller_index = caller.index
 		players_money[caller_index] = players_money[caller_index] + amount
 		local player_balance = players_money[caller_index]
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = caller_index, balance = player_balance})
 		caller.print("Your balance: " .. player_balance)
 		caller.print(force.name .. "'s balance: " .. result)
 	else
@@ -541,7 +532,6 @@ local function deposit_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = forces_money[target.index] + amount
-	script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target.index]})
 	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
@@ -568,7 +558,6 @@ local function withdraw_team_money_command(cmd)
 	end
 
 	forces_money[target.index] = forces_money[target.index] - amount
-	script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target.index]})
 	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
@@ -605,10 +594,7 @@ local function pay_command(cmd)
 		local result = players_money[caller.index] - amount
 		if result > 0 then
 			players_money[caller.index] = result
-			script.raise_event(custom_events.on_updated_player_balance, {target = caller, balance = result})
 			players_money[target.index] = players_money[target.index] + amount
-			local target_balance = players_money[target.index]
-			script.raise_event(custom_events.on_updated_player_balance, {target = target, balance = target_balance})
 			script.raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
 			caller.print("Your balance: " .. result)
 		else
@@ -708,9 +694,7 @@ local function transfer_team_money_command(cmd)
 		if result > 0 then
 			local target_index = target.index
 			forces_money[force.index] = result
-			script.raise_event(on_updated_force_balance_event, {force = force, balance = result})
 			forces_money[target_index] = forces_money[target_index] + amount
-			script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target_index]})
 			script.raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
 			caller.print(force.name .. "'s balance: " .. result)
 		else
@@ -723,9 +707,7 @@ local function transfer_team_money_command(cmd)
 		if result > 0 then
 			local target_index = target.index
 			players_money[caller_index] = result
-			script.raise_event(custom_events.on_updated_player_balance, {player_index = caller_index, balance = result})
 			forces_money[target_index] = forces_money[target_index] + amount
-			script.raise_event(on_updated_force_balance_event, {force = target, balance = forces_money[target_index]})
 			caller.print("Your balance: " .. players_money[caller_index])
 		else
 			caller.print("Not enough money", YELLOW_COLOR)
@@ -896,20 +878,17 @@ remote.add_interface("EasyAPI", {
 	end,
 	set_player_money = function(player_index, amount)
 		players_money[player_index] = amount
-		script.raise_event(custom_events.on_updated_player_balance, {player_index = player_index, balance = amount})
 	end,
 	set_force_money_by_index = function(force_index, amount)
 		forces_money[force_index] = amount or 0
 	end,
 	set_force_money = function(force, amount)
 		forces_money[force.index] = amount
-		script.raise_event(on_updated_force_balance_event, {force = force, balance = amount})
 	end,
 	deposit_force_money = function(force, amount)
 		local force_index = force.index
 		local new_amount = forces_money[force_index] + amount
 		forces_money[force_index] = new_amount
-		script.raise_event(on_updated_force_balance_event, {force = force, balance = new_amount})
 	end
 })
 

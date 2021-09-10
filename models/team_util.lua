@@ -43,7 +43,7 @@ M.is_team_name_valid = is_team_name_valid
 
 
 ---@param name string
----@param caller LuaForce|LuaPlayer|game
+---@param caller LuaForce|LuaPlayer|LuaGame
 ---@return LuaForce|nil
 M.create_team = function(name, caller)
 	if #name > 32 then

@@ -8,8 +8,6 @@ local M = {}
 
 
 -- Events
-local on_updated_force_balance_event
-local on_updated_player_balance_event
 local on_transfered_player_money_event
 local on_transfered_force_money_event
 
@@ -106,14 +104,10 @@ end
 
 
 M.on_load = function()
-	on_updated_force_balance_event = remote.call("EasyAPI", "get_event_name", "on_updated_force_balance")
-	on_updated_player_balance_event = remote.call("EasyAPI", "get_event_name", "on_updated_player_balance")
 	on_transfered_player_money_event = remote.call("EasyAPI", "get_event_name", "on_transfered_player_money")
 	on_transfered_force_money_event = remote.call("EasyAPI", "get_event_name", "on_transfered_force_money")
 
 	M.custom_events = {
-		on_updated_force_balance = on_updated_force_balance_event,
-		on_updated_player_balance = on_updated_player_balance_event,
 		on_transfered_player_money = on_transfered_player_money_event,
 		on_transfered_force_money = on_transfered_force_money_event
 	}
