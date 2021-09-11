@@ -889,6 +889,11 @@ remote.add_interface("EasyAPI", {
 		local force_index = force.index
 		local new_amount = forces_money[force_index] + amount
 		forces_money[force_index] = new_amount
+	end,
+	deposit_player_money = function(player, amount)
+		local player_index = player.index
+		local new_amount = players_money[player_index] + amount
+		players_money[player_index] = new_amount
 	end
 })
 
