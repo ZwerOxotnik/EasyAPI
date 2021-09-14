@@ -5,18 +5,33 @@ local M = {}
 
 
 --#region Global data
+---@type table<string, any>
 local mod_data
+---@type table<number, string>
 local teams
+---@class players_money
+---@type table<number, number>
 local players_money
+---@class forces_money
+---@type table<number, number>
 local forces_money
+---@type number
+local void_force_index
+---@type number
+local void_surface_index
 --#endregion
 
 
 --#region Values from settings
+---@type number
 local start_player_money = settings.global["EAPI_start-player-money"].value
+---@type number
 local start_force_money = settings.global["EAPI_start-force-money"].value
+---@type string
 local who_decides_diplomacy = settings.global["EAPI_who-decides-diplomacy"].value
+---@type string
 local default_permission_group = settings.global["EAPI_default-permission-group"].value
+---@type string
 local default_force_name = settings.global["EAPI_default-force-name"].value
 --#endregion
 
@@ -39,6 +54,8 @@ local function trim(s)
 end
 
 -- Sends message to a player or server
+---@param	message string
+---@param	caller PlayerIdentification
 local function print_to_caller(message, caller)
 	if caller then
 		if caller.valid then
@@ -64,7 +81,21 @@ local function create_lobby_surface()
 	if surface then return surface end
 
 	surface = game.create_surface("Lobby", {width = 1, height = 1})
-  surface.set_tiles({{name = "out-of-map", position = {1,1}}})
+	surface.request_to_generate_chunks({0, 0}, 1)
+	surface.force_generate_chunk_requests()
+	surface.set_tiles({{name = "out-of-map", position = {0, 0}}})
+  return surface
+end
+
+local function create_void_surface()
+	local surface = game.get_surface("void")
+	if surface then return surface end
+
+	surface = game.create_surface("void", {width = 1, height = 1})
+	surface.request_to_generate_chunks({0, 0}, 1)
+	surface.force_generate_chunk_requests()
+	surface.set_tiles({{name = "out-of-map", position = {0, 0}}})
+	global.EasyAPI.void_surface_index = surface.index
   return surface
 end
 
@@ -81,13 +112,13 @@ local function reset_player_balance(player_index)
 	players_money[player_index] = start_player_money
 end
 
----@param force LuaForce
+---@param force ForceIdentification
 local function reset_force_balance(force)
 	forces_money[force.index] = start_force_money
 end
 
----@param player LuaPLayer
----@param data table #players_money|forces_money
+---@param player PlayerIdentification
+---@param data players_money|forces_money
 ---@param index number
 local function convert_money(player, data, index)
 	local count = player.get_item_count("coin")
@@ -738,6 +769,8 @@ local function link_data()
 	teams = mod_data.teams
 	players_money = mod_data.players_money
 	forces_money = mod_data.forces_money
+	void_surface_index = mod_data.void_surface_index
+	void_force_index = mod_data.void_force_index
 end
 
 local function update_global_data()
@@ -746,6 +779,11 @@ local function update_global_data()
 	mod_data.teams = mod_data.teams or {}
 	mod_data.players_money = mod_data.players_money or {}
 	mod_data.forces_money = mod_data.forces_money or {}
+
+	if game.forces["void"] == nil then
+		global.EasyAPI.void_force_index = game.create_force("void").index
+	end
+	create_void_surface()
 
 	link_data()
 
@@ -778,16 +816,13 @@ local function update_global_data()
 			forces_money[force_index] = nil
 		end
 	end
+
+	forces_money[void_force_index] = nil
 end
 
 
 M.on_init = function()
 	update_global_data()
-	for _, force in pairs(game.forces) do
-		if force.valid and forces_money[force.index] == nil then
-			forces_money[force.index] = start_force_money
-		end
-	end
 end
 M.on_configuration_changed = function(event)
 	update_global_data()
@@ -880,7 +915,7 @@ remote.add_interface("EasyAPI", {
 		players_money[player_index] = amount
 	end,
 	set_force_money_by_index = function(force_index, amount)
-		forces_money[force_index] = amount or 0
+		forces_money[force_index] = amount
 	end,
 	set_force_money = function(force, amount)
 		forces_money[force.index] = amount
@@ -894,6 +929,12 @@ remote.add_interface("EasyAPI", {
 		local player_index = player.index
 		local new_amount = players_money[player_index] + amount
 		players_money[player_index] = new_amount
+	end,
+	get_void_force_index = function()
+		return void_force_index
+	end,
+	get_void_surface_index = function()
+		return void_surface_index
 	end
 })
 
