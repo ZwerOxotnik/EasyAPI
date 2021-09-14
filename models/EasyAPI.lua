@@ -156,6 +156,14 @@ local function on_player_created(event)
 	players_money[player_index] = start_player_money
 end
 
+local function on_player_joined_game(event)
+	local player_index = event.player_index
+	local player = game.get_player(player_index)
+	if player.force.index == void_force_index then
+		player.force = default_force_name
+	end
+end
+
 local function on_player_changed_force(event)
 	local target_force = game.get_player(event.player_index).force
 	if teams[target_force.index] then
@@ -946,6 +954,9 @@ M.events = {
 	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
 	[defines.events.on_player_created] = function(event)
 		pcall(on_player_created, event)
+	end,
+	[defines.events.on_player_joined_game] = function(event)
+		pcall(on_player_joined_game, event)
 	end,
 	[defines.events.on_player_changed_force] = function(event)
 		pcall(on_player_changed_force, event)
