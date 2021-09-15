@@ -204,7 +204,7 @@ local mod_settings = {
 	["EAPI_default-force-name"] = function(value) default_force_name = value end,
 }
 local function on_runtime_mod_setting_changed(event)
-	if event.setting_type ~= "runtime-global" then return end
+	-- if event.setting_type ~= "runtime-global" then return end
 	if not match(event.setting, "^EAPI_") then return end
 
 	local f = mod_settings[event.setting]
@@ -918,6 +918,9 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_force_money = function(force_index)
 		return forces_money[force_index]
+	end,
+	set_player_money_by_index = function(player_index, amount)
+		players_money[player_index] = amount
 	end,
 	set_player_money = function(player_index, amount)
 		players_money[player_index] = amount
