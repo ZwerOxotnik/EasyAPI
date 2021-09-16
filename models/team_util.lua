@@ -8,9 +8,8 @@ local M = {}
 
 
 --#region constants
-
+local call = remote.call
 local RED_COLOR = {1, 0, 0}
-
 --#endregion
 
 
@@ -43,8 +42,8 @@ M.is_team_name_valid = is_team_name_valid
 
 
 ---@param name string
----@param caller LuaForce|LuaPlayer|LuaGame
----@return LuaForce|nil
+---@param caller ForceIdentification|PlayerIdentification|LuaGame
+---@return ForceIdentification?
 M.create_team = function(name, caller)
 	if #name > 32 then
 		caller.print({"too-long-team-name"}, RED_COLOR)
@@ -66,29 +65,29 @@ M.create_team = function(name, caller)
 	end
 
 	local new_team = game.create_force(name)
-	remote.call("EasyAPI", "add_team", new_team)
+	call("EasyAPI", "add_team", new_team)
 	return new_team
 end
 
----@param force LuaForce
+---@param force ForceIdentification
 M.add_team = function(force)
-	remote.call("EasyAPI", "add_team", force)
+	call("EasyAPI", "add_team", force)
 end
 
----@param force LuaForce
+---@param force ForceIdentification
 M.remove_team = function(force)
-	remote.call("EasyAPI", "remove_team", force.index)
+	call("EasyAPI", "remove_team", force.index)
 end
 
 
 M.on_load = function()
-	on_team_lost_event = remote.call("EasyAPI", "get_event_name", "on_team_lost")
-	on_team_won_event = remote.call("EasyAPI", "get_event_name", "on_team_won")
-	on_player_joined_team_event = remote.call("EasyAPI", "get_event_name", "on_player_joined_team")
-	on_new_team_event = remote.call("EasyAPI", "get_event_name", "on_new_team")
-	on_pre_deleted_team_event = remote.call("EasyAPI", "get_event_name", "on_pre_deleted_team")
-	on_team_invited_event = remote.call("EasyAPI", "get_event_name", "on_team_invited")
-	on_player_accepted_invite_event = remote.call("EasyAPI", "get_event_name", "on_player_accepted_invite")
+	on_team_lost_event = call("EasyAPI", "get_event_name", "on_team_lost")
+	on_team_won_event = call("EasyAPI", "get_event_name", "on_team_won")
+	on_player_joined_team_event = call("EasyAPI", "get_event_name", "on_player_joined_team")
+	on_new_team_event = call("EasyAPI", "get_event_name", "on_new_team")
+	on_pre_deleted_team_event = call("EasyAPI", "get_event_name", "on_pre_deleted_team")
+	on_team_invited_event = call("EasyAPI", "get_event_name", "on_team_invited")
+	on_player_accepted_invite_event = call("EasyAPI", "get_event_name", "on_player_accepted_invite")
 
 	M.custom_events = {
 		on_team_lost = on_team_lost_event,

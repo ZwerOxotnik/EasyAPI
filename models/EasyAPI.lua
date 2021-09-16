@@ -873,8 +873,7 @@ remote.add_interface("EasyAPI", {
 	remove_team = function(index)
 		for _index, name in pairs(teams) do
 			if _index == index then
-				local force = game.forces[name]
-				script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+				script.raise_event(custom_events.on_pre_deleted_team, {force = game.forces[_index]})
 				teams[_index] = nil
 				return name
 			end
@@ -892,11 +891,11 @@ remote.add_interface("EasyAPI", {
 		return 0 -- not found
 	end,
 	delete_teams = function()
-		for _, name in pairs(teams) do
-			local force = game.forces[name]
-			script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+		for force_index in pairs(teams) do
+			script.raise_event(custom_events.on_pre_deleted_team, {force = game.forces[force_index]})
 		end
-		mod_data.teams = nil
+		mod_data.teams = {}
+		teams = mod_data.teams
 	end,
 	-- get_locked_teams = function()
 	-- 	return mod_data.locked_teams
