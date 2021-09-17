@@ -104,8 +104,7 @@ M.reset_force_balance = function(force)
 	call("EasyAPI", "reset_player_balance", force)
 end
 
-
-M.on_load = function()
+local function get_data()
 	on_transfered_player_money_event = call("EasyAPI", "get_event_name", "on_transfered_player_money")
 	on_transfered_force_money_event = call("EasyAPI", "get_event_name", "on_transfered_force_money")
 
@@ -114,6 +113,10 @@ M.on_load = function()
 		on_transfered_force_money = on_transfered_force_money_event
 	}
 end
+
+
+M.on_load = get_data
+M.on_init = get_data
 
 
 return M

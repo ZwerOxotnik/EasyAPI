@@ -1,4 +1,15 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.6.0
+Date: 2021-09-17
+  Features:
+    - Added new settings
+    - Added "get_teams_count" in the mod remote interface
+  Changes:
+    - Changed names of commands settings
+  Bugfixes:
+    - Fixed some data and events
+    - Fixed reaction of settings
+---------------------------------------------------------------------------------------------------
 Version: 0.5.9
 Date: 2021-09-16
   Changes:

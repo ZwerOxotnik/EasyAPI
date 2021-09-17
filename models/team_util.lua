@@ -55,6 +55,11 @@ M.create_team = function(name, caller)
 		caller.print({"teams.too_many"})
 		return
 	end
+	local teams_count = call("EasyAPI", "get_teams_count")
+	if teams_count >= settings.global["EAPI_max_teams"].value then
+		caller.print("Too many teams by setting")
+		return
+	end
 	if game.forces[name] then
 		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", name})
 		return
@@ -80,7 +85,7 @@ M.remove_team = function(force)
 end
 
 
-M.on_load = function()
+local function get_data()
 	on_team_lost_event = call("EasyAPI", "get_event_name", "on_team_lost")
 	on_team_won_event = call("EasyAPI", "get_event_name", "on_team_won")
 	on_player_joined_team_event = call("EasyAPI", "get_event_name", "on_player_joined_team")
@@ -99,6 +104,10 @@ M.on_load = function()
 		on_player_accepted_invite = on_player_accepted_invite_event
 	}
 end
+
+
+M.on_load = get_data
+M.on_init = get_data
 
 
 return M

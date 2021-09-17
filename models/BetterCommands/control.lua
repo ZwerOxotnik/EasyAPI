@@ -7,6 +7,9 @@ local M = {}
 ---@type table<string, table>
 local all_commands = {} -- commands from other modules
 
+
+-- Don't use symbols like '-' etc (it'll break pattern of regular expressions)
+local MOD_SHORT_NAME = "CEAPI_"
 local MAX_INPUT_LENGTH = 500 -- set any number
 local CONST_COMMANDS = require(MOD_PATH .. "/const-commands")
 local SWITCHABLE_COMMANDS = require(MOD_PATH .. "/switchable-commands")

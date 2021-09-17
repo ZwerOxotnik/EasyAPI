@@ -9,13 +9,13 @@ return {
   on_round_start = script.generate_event_name(),
 
 	-- Teams
-  on_team_lost = script.generate_event_name(), -- {name = force.name}
-  on_team_won = script.generate_event_name(), -- {name = force.name}
-  on_player_joined_team = script.generate_event_name(), -- {player_index = player.index, force = force}
-  on_new_team = script.generate_event_name(), -- {force = force}
-	on_pre_deleted_team = script.generate_event_name(), -- {force = force}
-  on_team_invited = script.generate_event_name(), -- {player_index = player.index, force = force}
-  on_player_accepted_invite = script.generate_event_name(), -- {player_index = player.index, force = force}
+  on_team_lost = script.generate_event_name(), -- {force}
+  on_team_won = script.generate_event_name(), -- {force}
+  on_player_joined_team = script.generate_event_name(), -- {player_index, force}
+  on_new_team = script.generate_event_name(), -- {force}
+	on_pre_deleted_team = script.generate_event_name(), -- {force}
+  on_team_invited = script.generate_event_name(), -- {player_index, force}
+  on_player_accepted_invite = script.generate_event_name(), -- {player_index, force}
 	-- Called when a force surrendered.
 	--	Contains:
 	--		force :: ForceIdentification: The force to be surrender
@@ -34,12 +34,12 @@ return {
   on_transfered_force_money = script.generate_event_name(), -- {receiver = force, payer = force}
 
 	-- Spawn
-	on_new_global_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
-	on_new_player_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
-	on_new_force_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
-	on_deleted_global_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
-	on_deleted_player_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
-	on_deleted_force_spawn = script.generate_event_name(), -- {position = position, id = spawn_id}
+	on_new_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_new_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_new_force_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_deleted_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_deleted_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_deleted_force_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 
 	-- Diplomacy
 	-- Called when someone/something changed a diplomacy relationship to ally/neutral/enemy.
@@ -69,10 +69,10 @@ return {
 
 	-- General
   on_reload_scenario = script.generate_event_name(),
-  on_new_character = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_admin_surface = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_scenario_surface = script.generate_event_name(), -- {player_index = player.index}
-  on_player_on_lobby_surface = script.generate_event_name(), -- {player_index = player.index}
+  on_new_character = script.generate_event_name(), -- {player_index}
+  on_player_on_admin_surface = script.generate_event_name(), -- {player_index}
+  on_player_on_scenario_surface = script.generate_event_name(), -- {player_index}
+  on_player_on_lobby_surface = script.generate_event_name(), -- {player_index}
 
 	-- Called when switched a mod
 	--	Contains:

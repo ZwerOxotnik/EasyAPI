@@ -111,7 +111,7 @@ M.declare_peace = function(force, other_force, player_index)
 end
 
 
-M.on_load = function()
+local function get_data()
 	on_ally_event = call("EasyAPI", "get_event_name", "on_ally")
 	on_neutral_event = call("EasyAPI", "get_event_name", "on_neutral")
 	on_enemy_event = call("EasyAPI", "get_event_name", "on_enemy")
@@ -122,6 +122,10 @@ M.on_load = function()
 		on_enemy = on_enemy_event
 	}
 end
+
+
+M.on_load = get_data
+M.on_init = get_data
 
 
 return M

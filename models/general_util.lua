@@ -35,7 +35,7 @@ M.get_data = function()
 end
 
 
-M.on_load = function()
+local function get_data()
 	on_reload_scenario_event = call("EasyAPI", "get_event_name", "on_reload_scenario")
 	on_new_character_event = call("EasyAPI", "get_event_name", "on_new_character")
 	on_player_on_admin_surface_event = call("EasyAPI", "get_event_name", "on_player_on_admin_surface")
@@ -52,6 +52,10 @@ M.on_load = function()
 		on_toggle = on_toggle_event
 	}
 end
+
+
+M.on_load = get_data
+M.on_init = get_data
 
 
 return M

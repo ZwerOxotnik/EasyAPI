@@ -7,16 +7,21 @@ local M = {}
 --#region Global data
 ---@type table<string, any>
 local mod_data
+
 ---@type table<number, string>
 local teams
+
 ---@class players_money
 ---@type table<number, number>
 local players_money
+
 ---@class forces_money
 ---@type table<number, number>
 local forces_money
+
 ---@type number
 local void_force_index
+
 ---@type number
 local void_surface_index
 --#endregion
@@ -25,14 +30,21 @@ local void_surface_index
 --#region Values from settings
 ---@type number
 local start_player_money = settings.global["EAPI_start-player-money"].value
+
 ---@type number
 local start_force_money = settings.global["EAPI_start-force-money"].value
+
 ---@type string
 local who_decides_diplomacy = settings.global["EAPI_who-decides-diplomacy"].value
+
 ---@type string
 local default_permission_group = settings.global["EAPI_default-permission-group"].value
+
 ---@type string
 local default_force_name = settings.global["EAPI_default-force-name"].value
+
+---@type boolean
+local allow_create_team = settings.global["EAPI_allow_create_team"].value
 --#endregion
 
 
@@ -167,7 +179,7 @@ end
 local function on_player_changed_force(event)
 	local target_force = game.get_player(event.player_index).force
 	if teams[target_force.index] then
-		script.raise_event(custom_events.on_player_joined_team, {force = target_force})
+		script.raise_event(custom_events.on_player_joined_team, {player_index = event.player_index, force = target_force})
 	end
 end
 
@@ -193,7 +205,7 @@ local function on_player_demoted(event)
 end
 
 local function on_game_created_from_scenario(event)
-	script.raise_event(custom_events.on_new_team, {force = game.forces.player})
+	script.raise_event(custom_events.on_new_team, {force = game.forces.player}) -- TODO: check, perhaps, something is wrong
 end
 
 local mod_settings = {
@@ -202,6 +214,7 @@ local mod_settings = {
 	["EAPI_start-player-money"] = function(value) start_player_money = value end,
 	["EAPI_start-force-money"] = function(value) start_force_money = value end,
 	["EAPI_default-force-name"] = function(value) default_force_name = value end,
+	["EAPI_allow_create_team"] = function(value) allow_create_team = value end
 }
 local function on_runtime_mod_setting_changed(event)
 	-- if event.setting_type ~= "runtime-global" then return end
@@ -364,6 +377,11 @@ end
 local function create_new_team_command(cmd)
 	local caller = game.get_player(cmd.player_index)
 
+	if not allow_create_team then
+		caller.print("Creation of teams is disabled by setting")
+		return
+	end
+
 	if #cmd.parameter > (MAX_TEAM_NAME_LENGTH + 2) then
 		caller.print({"too-long-team-name"}, RED_COLOR)
 		return
@@ -388,6 +406,8 @@ local function create_new_team_command(cmd)
 			technologies[name].researched = tech.researched
 		end
 	end
+
+	caller.print({"EasyAPI.new_team"})
 end
 
 local function remove_team_command(cmd)
@@ -866,6 +886,9 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_teams = function()
 		return teams
+	end,
+	get_teams_count = function()
+		return #teams
 	end,
 	set_teams = function(new_teams) -- TODO: check
 		mod_data.teams = new_teams
