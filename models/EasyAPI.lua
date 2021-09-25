@@ -55,6 +55,7 @@ local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
+local NOT_ENOUGH_MONEY = {"not-enough-money"}
 --#endregion
 
 
@@ -260,7 +261,7 @@ local function team_list_command(cmd)
 		return
 	end
 
-	local caller = game.get_player(cmd.player_index)
+	local player = game.get_player(cmd.player_index)
 
 	local function get_forces(forces)
 		local data = {}
@@ -284,12 +285,12 @@ local function team_list_command(cmd)
 	local neutral_forces = {}
 	local enemy_forces = {}
 
-	local caller_force = caller.force
+	local player_force = player.force
 	for _, force in pairs(game.forces) do
-		if force ~= caller_force then
-			if caller_force.get_friend(force) then
+		if force ~= player_force then
+			if player_force.get_friend(force) then
 				ally_forces[#ally_forces+1] = force
-			elseif caller_force.get_cease_fire(force) then
+			elseif player_force.get_cease_fire(force) then
 				neutral_forces[#neutral_forces+1] = force
 			else
 				enemy_forces[#enemy_forces+1] = force
@@ -297,15 +298,15 @@ local function team_list_command(cmd)
 		end
 	end
 
-	caller.print({"", "[font=default-large-bold][color=#FFFFFF]", {"gui-map-editor-title.force-editor"}, {"colon"}, " for \"" .. caller.force.name .. "\"[/color][/font]"})
+	player.print({"", "[font=default-large-bold][color=#FFFFFF]", {"gui-map-editor-title.force-editor"}, {"colon"}, " for \"" .. player.force.name .. "\"[/color][/font]"})
 	if #enemy_forces > 0 then
-		caller.print({"", "  [font=default-large-bold][color=#880000]Enemies[/color][/font]", {"colon"}, ' ', get_forces(enemy_forces)})
+		player.print({"", "  [font=default-large-bold][color=#880000]Enemies[/color][/font]", {"colon"}, ' ', get_forces(enemy_forces)})
 	end
 	if #neutral_forces > 0 then
-		caller.print({"", "  [font=default-large-bold]Neutrals[/font]", {"colon"}, ' ', get_forces(neutral_forces)})
+		player.print({"", "  [font=default-large-bold]Neutrals[/font]", {"colon"}, ' ', get_forces(neutral_forces)})
 	end
 	if #ally_forces > 0 then
-		caller.print({"", "  [font=default-large-bold][color=green]Allies[/color][/font]", {"colon"}, ' ', get_forces(ally_forces)})
+		player.print({"", "  [font=default-large-bold][color=green]Allies[/color][/font]", {"colon"}, ' ', get_forces(ally_forces)})
 	end
 end
 
@@ -375,49 +376,49 @@ local function kick_teammate_command(cmd)
 end
 
 local function create_new_team_command(cmd)
-	local caller = game.get_player(cmd.player_index)
+	local player = game.get_player(cmd.player_index)
 
 	if not allow_create_team then
-		caller.print("Creation of teams is disabled by setting")
+		player.print("Creation of teams is disabled by setting")
 		return
 	end
 
 	if #cmd.parameter > (MAX_TEAM_NAME_LENGTH + 2) then
-		caller.print({"too-long-team-name"}, RED_COLOR)
+		player.print({"too-long-team-name"}, RED_COLOR)
 		return
 	end
 	local team_name = trim(cmd.parameter)
 
-	local new_team = team_util.create_team(team_name, caller)
+	local new_team = team_util.create_team(team_name, player)
 	if new_team == nil then return end
 
 	-- TODO: improve
-	if #caller.force.players == 1 and not constant_forces[caller.force.name] then
+	if #player.force.players == 1 and not constant_forces[player.force.name] then
 		local technologies = new_team.technologies
-		for name, tech in pairs(caller.force.technologies) do
+		for name, tech in pairs(player.force.technologies) do
 			technologies[name].researched = tech.researched
 		end
-		game.merge_forces(caller.force, new_team)
+		game.merge_forces(player.force, new_team)
 	else
-		local prev_force = caller.force
-		caller.force = new_team
+		local prev_force = player.force
+		player.force = new_team
 		local technologies = new_team.technologies
 		for name, tech in pairs(prev_force.technologies) do
 			technologies[name].researched = tech.researched
 		end
 	end
 
-	caller.print({"EasyAPI.new_team"})
+	player.print({"EasyAPI.new_team"})
 end
 
 local function remove_team_command(cmd)
-	local caller = game.get_player(cmd.player_index)
+	local admin = game.get_player(cmd.player_index)
 	local target_force = game.forces[cmd.parameter]
 	if #target_force.players ~= 0 then
-		caller.print("The team isn't empty. There are still players in it")
+		admin.print({"not-empty-team"})
 		return
 	elseif constant_forces[target_force.name] then
-		caller.print({"gui-map-editor-force-editor.cant-delete-built-in-force"})
+		admin.print({"gui-map-editor-force-editor.cant-delete-built-in-force"})
 		return
 	end
 
@@ -502,32 +503,32 @@ local function deposit_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player_index = cmd.player_index
-	local caller = game.get_player(player_index)
+	local player = game.get_player(player_index)
 	if players_money[player_index] == nil then
-		caller.print("You does't have balance")
+		player.print({"no-balance"})
 		return
 	end
 
-	local force = caller.force
+	local force = player.force
 	if forces_money[force.index] == nil then
-		caller.print("Your force doesn't have balance")
+		player.print({"no-team-balance"})
 		return
 	end
 
 	local amount = tonumber(args[1])
 	if amount == nil or amount <= 0 then
-		caller.print({"EasyAPI-commands.deposit-money"})
+		player.print({"EasyAPI-commands.deposit-money"})
 		return
 	end
 
-	local result = players_money[caller.index] - amount
-	if result > 0 then
-		players_money[caller.index] = result
+	local result = players_money[player_index] - amount
+	if result >= 0 then
+		players_money[player_index] = result
 		forces_money[force.index] = forces_money[force.index] + amount
-		caller.print("Your balance: " .. result)
-		caller.print(force.name .. "'s balance: " .. forces_money[force.index])
+		player.print("Your balance: " .. result)
+		player.print(force.name .. "'s balance: " .. forces_money[force.index])
 	else
-		caller.print("Not enough money", YELLOW_COLOR)
+		player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 	end
 end
 
@@ -536,46 +537,46 @@ local function withdraw_money_command(cmd)
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
 	local player_index = cmd.player_index
-	local caller = game.get_player(player_index)
+	local player = game.get_player(player_index)
 	if players_money[player_index] == nil then
-		caller.print("You does't have balance")
+		player.print({"no-balance"})
 		return
 	end
 
-	local force = caller.force
+	local force = player.force
 	if forces_money[force.index] == nil then
-		caller.print("Your force doesn't have balance")
+		player.print({"no-team-balance"})
 		return
 	end
 
 	local amount = tonumber(args[1])
 	if amount == nil or amount <= 0 then
-		caller.print({"EasyAPI-commands.withdraw-money"})
+		player.print({"EasyAPI-commands.withdraw-money"})
 		return
 	end
 
 	local force_index = force.index
 	local result = forces_money[force_index] - amount
-	if result > 0 then
+	if result >= 0 then
 		forces_money[force_index] = result
-		local caller_index = caller.index
+		local caller_index = player.index
 		players_money[caller_index] = players_money[caller_index] + amount
 		local player_balance = players_money[caller_index]
-		caller.print("Your balance: " .. player_balance)
-		caller.print(force.name .. "'s balance: " .. result)
+		player.print("Your balance: " .. player_balance)
+		player.print(force.name .. "'s balance: " .. result)
 	else
-		caller.print("Not enough money", YELLOW_COLOR)
+		player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 	end
 end
 
 local function deposit_team_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
-	local caller = game.get_player(cmd.player_index)
+	local player = game.get_player(cmd.player_index)
 
 	local amount = tonumber(args[2] or args[1])
 	if amount == nil or amount <= 0 then
-		caller.print({"EasyAPI-commands.deposit-team-money"})
+		player.print({"EasyAPI-commands.deposit-team-money"})
 		return
 	end
 
@@ -583,25 +584,25 @@ local function deposit_team_money_command(cmd)
 	if #args == 2 then
 		target = game.forces[args[1]]
 		if not (target and target.valid) then
-			caller.print({"force-doesnt-exist", args[1]})
+			player.print({"force-doesnt-exist", args[1]})
 			return
 		end
 	else
-		target = caller.force
+		target = player.force
 	end
 
 	forces_money[target.index] = forces_money[target.index] + amount
-	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	player.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
 local function withdraw_team_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
-	local caller = game.get_player(cmd.player_index)
+	local player = game.get_player(cmd.player_index)
 
 	local amount = tonumber(args[2] or args[1])
 	if amount == nil or amount <= 0 then
-		caller.print({"EasyAPI-commands.withdraw-team-money"})
+		player.print({"EasyAPI-commands.withdraw-team-money"})
 		return
 	end
 
@@ -609,85 +610,85 @@ local function withdraw_team_money_command(cmd)
 	if #args == 2 then
 		target = game.forces[args[1]]
 		if not (target and target.valid) then
-			caller.print({"force-doesnt-exist", args[1]})
+			player.print({"force-doesnt-exist", args[1]})
 			return
 		end
 	else
-		target = caller.force
+		target = player.force
 	end
 
 	forces_money[target.index] = forces_money[target.index] - amount
-	caller.print(target.name .. "'s balance: " .. forces_money[target.index])
+	player.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
 local function pay_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
-	local caller = game.get_player(cmd.player_index)
-	if players_money[caller.index] == nil then
-		caller.print("You don't have balance")
+	local player = game.get_player(cmd.player_index)
+	if players_money[player.index] == nil then
+		player.print({"no-balance"})
 		return
 	elseif #args < 2 then
-		caller.print({"EasyAPI-commands.pay"})
+		player.print({"EasyAPI-commands.pay"})
 		return
 	end
 
 	local amount = tonumber(args[2])
 	if amount == nil or amount < 0 then
-		caller.print({"EasyAPI-commands.pay"})
+		player.print({"EasyAPI-commands.pay"})
 		return
 	end
 
 	local target = game.get_player(args[1])
 	if not (target and target.valid) then
-		caller.print({"player-doesnt-exist", args[1]})
+		player.print({"player-doesnt-exist", args[1]})
 		return
-	elseif target == caller then
-		caller.print("You can't pay yourself")
+	elseif target == player then
+		player.print("You can't pay yourself")
 		return
-	elseif players_money[caller.index] == nil then
-		caller.print("Target doesn't have balance")
+	elseif players_money[player.index] == nil then
+		player.print("Target doesn't have balance")
 		return
 	else
-		local result = players_money[caller.index] - amount
-		if result > 0 then
-			players_money[caller.index] = result
+		local result = players_money[player.index] - amount
+		if result >= 0 then
+			players_money[player.index] = result
 			players_money[target.index] = players_money[target.index] + amount
 			script.raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
-			caller.print("Your balance: " .. result)
+			player.print("Your balance: " .. result)
 		else
-			caller.print("Not enough money", YELLOW_COLOR)
+			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 		end
 	end
 end
 
 local function balance_command(cmd)
-	local caller = game.get_player(cmd.player_index)
+	local player = game.get_player(cmd.player_index)
 	local parameter = cmd.parameter
 	local target
 	if parameter == nil then
-		target = caller.force
+		target = player.force
 	else
 		parameter = trim(parameter)
 		if parameter == '' then
-			target = caller.force
+			target = player.force
 		else
 			target = game.get_player(parameter)
 			if not (target and target.valid) then
-				caller.print({"player-doesnt-exist", parameter})
+				player.print({"player-doesnt-exist", parameter})
 				return
 			end
 		end
 	end
 
-	local balance = players_money[caller.index]
+	local balance = players_money[player.index]
 	if balance then
-		caller.print("Your balance: " .. players_money[caller.index])
+		player.print("Your balance: " .. players_money[player.index])
 	end
 	local force_balance = forces_money[target.index]
 	if force_balance then
-		caller.print(target.name .. "'s balance: " .. force_balance)
+		player.print(target.name .. "'s balance: " .. force_balance)
 	end
 end
 
@@ -722,16 +723,16 @@ local function transfer_team_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
-	local caller = game.get_player(cmd.player_index)
-	local force = caller.force
+	local player = game.get_player(cmd.player_index)
+	local force = player.force
 	if forces_money[force.index] == nil then
-		caller.print("Your force doesn't have balance")
+		player.print({"no-team-balance"})
 		return
 	end
 
 	local amount = tonumber(args[2] or args[1])
 	if amount == nil or amount <= 0 then
-		caller.print({"EasyAPI-commands.transfer-team-money"})
+		player.print({"EasyAPI-commands.transfer-team-money"})
 		return
 	end
 
@@ -739,37 +740,37 @@ local function transfer_team_money_command(cmd)
 	if #args == 2 then
 		target = game.forces[args[1]]
 		if not (target and target.valid) then
-			caller.print({"force-doesnt-exist", args[1]})
+			player.print({"force-doesnt-exist", args[1]})
 			return
-		elseif target == caller.force then
-			caller.print("You can't transfer money to your own team", RED_COLOR)
+		elseif target == player.force then
+			player.print("You can't transfer money to your own team", RED_COLOR)
 			return
 		elseif forces_money[target.index] == nil then
-			caller.print("Target force doesn't have balance")
+			player.print("Target force doesn't have balance")
 			return
 		end
 
 		local result = forces_money[force.index] - amount
-		if result > 0 then
+		if result >= 0 then
 			local target_index = target.index
 			forces_money[force.index] = result
 			forces_money[target_index] = forces_money[target_index] + amount
 			script.raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
-			caller.print(force.name .. "'s balance: " .. result)
+			player.print(force.name .. "'s balance: " .. result)
 		else
-			caller.print("Not enough money", YELLOW_COLOR)
+			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 		end
 	else--if #args == 1 then
-		target = caller.force
-		local caller_index = caller.index
+		target = player.force
+		local caller_index = player.index
 		local result = players_money[caller_index] - amount
-		if result > 0 then
+		if result >= 0 then
 			local target_index = target.index
 			players_money[caller_index] = result
 			forces_money[target_index] = forces_money[target_index] + amount
-			caller.print("Your balance: " .. players_money[caller_index])
+			player.print("Your balance: " .. players_money[caller_index])
 		else
-			caller.print("Not enough money", YELLOW_COLOR)
+			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 		end
 	end
 end
