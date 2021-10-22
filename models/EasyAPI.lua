@@ -195,6 +195,7 @@ local function on_player_joined_game(event)
 	local money = offline_players_money[player_index]
 	if money then
 		online_players_money[player_index] = money
+		offline_players_money[player_index] = nil
 	end
 
 	local player = game.get_player(player_index)
@@ -207,7 +208,8 @@ local function on_player_left_game(event)
 	local player_index = event.player_index
 	local money = online_players_money[player_index]
 	if money then
-		online_players_money[player_index] = money
+		offline_players_money[player_index] = money
+		online_players_money[player_index] = nil
 	end
 end
 
