@@ -11,9 +11,13 @@ local mod_data
 ---@type table<number, string>
 local teams
 
----@class players_money
+---@class online_players_money
 ---@type table<number, number>
-local players_money
+local online_players_money
+
+---@class offline_players_money
+---@type table<number, number>
+local offline_players_money
 
 ---@class forces_money
 ---@type table<number, number>
@@ -51,6 +55,7 @@ local allow_create_team = settings.global["EAPI_allow_create_team"].value
 --#region Constants
 local match = string.match
 local custom_events = require("events")
+local raise_event = script.raise_event
 local constant_forces = {neutral = true, player = true, enemy = true}
 local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
@@ -68,7 +73,7 @@ end
 
 -- Sends message to a player or server
 ---@param	message string
----@param	caller PlayerIdentification
+---@param	caller LuaPlayer
 local function print_to_caller(message, caller)
 	if caller then
 		if caller.valid then
@@ -80,7 +85,8 @@ local function print_to_caller(message, caller)
 end
 
 local function clear_player_data(event)
-	players_money[event.player_index] = nil
+	online_players_money[event.player_index] = nil
+	offline_players_money[event.player_index] = nil
 end
 
 local function get_distance(start, stop)
@@ -108,29 +114,44 @@ local function create_void_surface()
 	surface.request_to_generate_chunks({0, 0}, 1)
 	surface.force_generate_chunk_requests()
 	surface.set_tiles({{name = "out-of-map", position = {0, 0}}})
-	global.EasyAPI.void_surface_index = surface.index
+	mod_data.void_surface_index = surface.index
   return surface
 end
 
 local function reset_balances()
-	for player_index, _ in pairs(players_money) do
-		players_money[player_index] = start_player_money
+	for player_index in pairs(online_players_money) do
+		online_players_money[player_index] = start_player_money
 	end
-	for force_index, _ in pairs(forces_money) do
+	for player_index in pairs(offline_players_money) do
+		offline_players_money[player_index] = start_player_money
+	end
+	for force_index in pairs(forces_money) do
 		forces_money[force_index] = start_force_money
 	end
 end
 
 local function reset_player_balance(player_index)
-	players_money[player_index] = start_player_money
+	if game.get_player(player_index).connected then
+		online_players_money[player_index] = start_player_money
+	else
+		offline_players_money[player_index] = start_player_money
+	end
 end
 
----@param force ForceIdentification
+local function reset_offline_player_balance(player_index)
+	offline_players_money[player_index] = start_player_money
+end
+
+local function reset_online_player_balance(player_index)
+	online_players_money[player_index] = start_player_money
+end
+
+---@param force LuaForce
 local function reset_force_balance(force)
 	forces_money[force.index] = start_force_money
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@param data players_money|forces_money
 ---@param index number
 local function convert_money(player, data, index)
@@ -166,21 +187,34 @@ local function on_player_created(event)
 	if player.admin then
 		game.permissions.get_group("Admin").add_player(player)
 	end
-	players_money[player_index] = start_player_money
+	online_players_money[player_index] = start_player_money
 end
 
 local function on_player_joined_game(event)
 	local player_index = event.player_index
+	local money = offline_players_money[player_index]
+	if money then
+		online_players_money[player_index] = money
+	end
+
 	local player = game.get_player(player_index)
 	if player.force.index == void_force_index then
 		player.force = default_force_name
 	end
 end
 
+local function on_player_left_game(event)
+	local player_index = event.player_index
+	local money = online_players_money[player_index]
+	if money then
+		online_players_money[player_index] = money
+	end
+end
+
 local function on_player_changed_force(event)
 	local target_force = game.get_player(event.player_index).force
 	if teams[target_force.index] then
-		script.raise_event(custom_events.on_player_joined_team, {player_index = event.player_index, force = target_force})
+		raise_event(custom_events.on_player_joined_team, {player_index = event.player_index, force = target_force})
 	end
 end
 
@@ -191,7 +225,7 @@ end
 local function on_pre_player_removed(event)
 	local player_index = event.player_index
 	local force_index = game.get_player(player_index).force.index
-	local player_money = players_money[player_index]
+	local player_money = online_players_money[player_index]
 	-- send player money to force
 	if forces_money[force_index] and player_money then
 		forces_money[force_index] = forces_money[force_index] + player_money
@@ -206,7 +240,7 @@ local function on_player_demoted(event)
 end
 
 local function on_game_created_from_scenario(event)
-	script.raise_event(custom_events.on_new_team, {force = game.forces.player}) -- TODO: check, perhaps, something is wrong
+	raise_event(custom_events.on_new_team, {force = game.forces.player}) -- TODO: check, perhaps, something is wrong
 end
 
 local mod_settings = {
@@ -218,9 +252,6 @@ local mod_settings = {
 	["EAPI_allow_create_team"] = function(value) allow_create_team = value end
 }
 local function on_runtime_mod_setting_changed(event)
-	-- if event.setting_type ~= "runtime-global" then return end
-	if not match(event.setting, "^EAPI_") then return end
-
 	local f = mod_settings[event.setting]
 	if f then f(settings.global[event.setting].value) end
 end
@@ -228,7 +259,7 @@ end
 local function on_forces_merging(event)
 	local force = event.source
 	if teams[force.index] then
-		script.raise_event(custom_events.on_pre_deleted_team, {force = force})
+		raise_event(custom_events.on_pre_deleted_team, {force = force})
 	end
 end
 
@@ -255,7 +286,7 @@ end
 
 local function team_list_command(cmd)
 	if cmd.player_index == 0 then
-		for name, _ in pairs(game.forces) do
+		for name in pairs(game.forces) do
 			print(name)
 		end
 		return
@@ -361,12 +392,12 @@ local function kick_teammate_command(cmd)
 	if caller.admin then
 		game.print(cmd.parameter .. " was kicked from \"" .. target_player.force.name .. "\" team by " .. caller.name)
 		target_player.force = force
-		script.raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
+		raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
 	elseif caller.force == target_player.force then
 		if caller.force.players[1] == caller then
 			game.print(cmd.parameter .. " was kicked from \"" .. target_player.force.name .. "\" team by " .. caller.name)
 			target_player.force = force
-			script.raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
+			raise_event(custom_events.on_player_kicked_from_team, {player_index = target_player.index, kicker = caller.index})
 		else
 			caller.print("You don't have permissions to kick players")
 		end
@@ -469,7 +500,7 @@ local function set_money_command(cmd)
 		target = caller
 	end
 
-	players_money[target.index] = amount
+	online_players_money[target.index] = amount
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
@@ -504,7 +535,7 @@ local function deposit_money_command(cmd)
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
-	if players_money[player_index] == nil then
+	if online_players_money[player_index] == nil then
 		player.print({"no-balance"})
 		return
 	end
@@ -521,9 +552,9 @@ local function deposit_money_command(cmd)
 		return
 	end
 
-	local result = players_money[player_index] - amount
+	local result = online_players_money[player_index] - amount
 	if result >= 0 then
-		players_money[player_index] = result
+		online_players_money[player_index] = result
 		forces_money[force.index] = forces_money[force.index] + amount
 		player.print("Your balance: " .. result)
 		player.print(force.name .. "'s balance: " .. forces_money[force.index])
@@ -538,7 +569,7 @@ local function withdraw_money_command(cmd)
 
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
-	if players_money[player_index] == nil then
+	if online_players_money[player_index] == nil then
 		player.print({"no-balance"})
 		return
 	end
@@ -560,8 +591,8 @@ local function withdraw_money_command(cmd)
 	if result >= 0 then
 		forces_money[force_index] = result
 		local caller_index = player.index
-		players_money[caller_index] = players_money[caller_index] + amount
-		local player_balance = players_money[caller_index]
+		online_players_money[caller_index] = online_players_money[caller_index] + amount
+		local player_balance = online_players_money[caller_index]
 		player.print("Your balance: " .. player_balance)
 		player.print(force.name .. "'s balance: " .. result)
 	else
@@ -626,7 +657,7 @@ local function pay_command(cmd)
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
 	local player = game.get_player(cmd.player_index)
-	if players_money[player.index] == nil then
+	if online_players_money[player.index] == nil then
 		player.print({"no-balance"})
 		return
 	elseif #args < 2 then
@@ -647,15 +678,15 @@ local function pay_command(cmd)
 	elseif target == player then
 		player.print("You can't pay yourself")
 		return
-	elseif players_money[player.index] == nil then
+	elseif online_players_money[player.index] == nil then
 		player.print("Target doesn't have balance")
 		return
 	else
-		local result = players_money[player.index] - amount
+		local result = online_players_money[player.index] - amount
 		if result >= 0 then
-			players_money[player.index] = result
-			players_money[target.index] = players_money[target.index] + amount
-			script.raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
+			online_players_money[player.index] = result
+			online_players_money[target.index] = online_players_money[target.index] + amount
+			raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
 			player.print("Your balance: " .. result)
 		else
 			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
@@ -682,9 +713,9 @@ local function balance_command(cmd)
 		end
 	end
 
-	local balance = players_money[player.index]
+	local balance = online_players_money[player.index]
 	if balance then
-		player.print("Your balance: " .. players_money[player.index])
+		player.print("Your balance: " .. online_players_money[player.index])
 	end
 	local force_balance = forces_money[target.index]
 	if force_balance then
@@ -755,7 +786,7 @@ local function transfer_team_money_command(cmd)
 			local target_index = target.index
 			forces_money[force.index] = result
 			forces_money[target_index] = forces_money[target_index] + amount
-			script.raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
+			raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
 			player.print(force.name .. "'s balance: " .. result)
 		else
 			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
@@ -763,12 +794,12 @@ local function transfer_team_money_command(cmd)
 	else--if #args == 1 then
 		target = player.force
 		local caller_index = player.index
-		local result = players_money[caller_index] - amount
+		local result = online_players_money[caller_index] - amount
 		if result >= 0 then
 			local target_index = target.index
-			players_money[caller_index] = result
+			online_players_money[caller_index] = result
 			forces_money[target_index] = forces_money[target_index] + amount
-			player.print("Your balance: " .. players_money[caller_index])
+			player.print("Your balance: " .. online_players_money[caller_index])
 		else
 			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
 		end
@@ -781,7 +812,7 @@ local function convert_money_command(cmd)
 	local force_index = player.force.index
 	if forces_money[force_index] then
 		convert_money(player, forces_money, force_index)
-	elseif players_money[player_index] then
+	elseif online_players_money[player_index] then
 		convert_money(player, forces_money, player_index)
 	else
 		player.print("No balance")
@@ -796,7 +827,8 @@ end
 local function link_data()
 	mod_data = global.EasyAPI
 	teams = mod_data.teams
-	players_money = mod_data.players_money
+	online_players_money = mod_data.online_players_money
+	offline_players_money = mod_data.offline_players_money
 	forces_money = mod_data.forces_money
 	void_surface_index = mod_data.void_surface_index
 	void_force_index = mod_data.void_force_index
@@ -806,11 +838,13 @@ local function update_global_data()
 	global.EasyAPI = global.EasyAPI or {}
 	mod_data = global.EasyAPI
 	mod_data.teams = mod_data.teams or {}
-	mod_data.players_money = mod_data.players_money or {}
+	mod_data.online_players_money = mod_data.online_players_money or {}
+	mod_data.offline_players_money = mod_data.offline_players_money or {}
 	mod_data.forces_money = mod_data.forces_money or {}
 
-	if game.forces["void"] == nil then
-		global.EasyAPI.void_force_index = game.create_force("void").index
+	local forces = game.forces
+	if forces["void"] == nil then
+		mod_data.void_force_index = game.create_force("void").index
 	end
 	create_void_surface()
 
@@ -823,25 +857,32 @@ local function update_global_data()
 	end
 
 	if #teams == 0 then
-		local player_force = game.forces.player
+		local player_force = forces.player
 		teams[player_force.index] = "player"
 		forces_money[player_force.index] = start_force_money
 	end
 
-	for player_index, _ in pairs(game.players) do
-		if players_money[player_index] == nil then
-			players_money[player_index] = start_player_money
+	for player_index, player in pairs(game.players) do
+		if player.connected then
+			if online_players_money[player_index] == nil then
+				online_players_money[player_index] = start_player_money
+			end
+		else
+			if offline_players_money[player_index] == nil then
+				offline_players_money[player_index] = start_player_money
+			end
 		end
 	end
 
 	-- Delete trash data
-	for player_index, _ in pairs(players_money) do
+	for player_index in pairs(online_players_money) do
 		if not game.get_player(player_index) then
-			players_money[player_index] = nil
+			online_players_money[player_index] = nil
+			offline_players_money[player_index] = nil
 		end
 	end
-	for force_index, _ in pairs(forces_money) do
-		if not game.forces[force_index] then
+	for force_index in pairs(forces_money) do
+		if not forces[force_index] then
 			forces_money[force_index] = nil
 		end
 	end
@@ -867,6 +908,12 @@ M.on_configuration_changed = function(event)
 			end
 		end
 	end
+	if version < 0.7 then
+		for player_index, money in pairs(mod_data.players_money) do
+			mod_data.online_players_money[player_index] = money
+		end
+		mod_data.players_money = nil
+	end
 end
 M.on_load = link_data
 
@@ -883,7 +930,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	add_team = function(force)
 		teams[force.index] = force.name
-		script.raise_event(custom_events.on_new_team, {force = force})
+		raise_event(custom_events.on_new_team, {force = force})
 	end,
 	get_teams = function()
 		return teams
@@ -895,9 +942,10 @@ remote.add_interface("EasyAPI", {
 		mod_data.teams = new_teams
 	end,
 	remove_team = function(index)
+		local forces = game.forces
 		for _index, name in pairs(teams) do
 			if _index == index then
-				script.raise_event(custom_events.on_pre_deleted_team, {force = game.forces[_index]})
+				raise_event(custom_events.on_pre_deleted_team, {force = forces[_index]})
 				teams[_index] = nil
 				return name
 			end
@@ -915,8 +963,11 @@ remote.add_interface("EasyAPI", {
 		return 0 -- not found
 	end,
 	delete_teams = function()
+		local forces = game.forces
+		local data = {force = nil}
 		for force_index in pairs(teams) do
-			script.raise_event(custom_events.on_pre_deleted_team, {force = game.forces[force_index]})
+			data.force = forces[force_index]
+			raise_event(custom_events.on_pre_deleted_team, data)
 		end
 		mod_data.teams = {}
 		teams = mod_data.teams
@@ -929,12 +980,26 @@ remote.add_interface("EasyAPI", {
 	-- end,
 	reset_balances = reset_balances,
 	reset_player_balance = reset_player_balance,
+	reset_offline_player_balance = reset_offline_player_balance,
+	reset_online_player_balance = reset_online_player_balance,
 	reset_force_balance = reset_force_balance,
 	get_players_money = function()
-		return players_money
+		return online_players_money, offline_players_money
 	end,
-	get_player_money = function(player_index)
-		return players_money[player_index]
+	get_offline_players_money = function()
+		return offline_players_money
+	end,
+	get_online_players_money = function()
+		return online_players_money
+	end,
+	get_player_money_by_index = function(player_index)
+		return online_players_money[player_index] or offline_players_money[player_index]
+	end,
+	get_online_player_money = function(player_index)
+		return online_players_money[player_index]
+	end,
+	get_offline_player_money = function(player_index)
+		return offline_players_money[player_index]
 	end,
 	get_forces_money = function()
 		return forces_money
@@ -942,11 +1007,18 @@ remote.add_interface("EasyAPI", {
 	get_force_money = function(force_index)
 		return forces_money[force_index]
 	end,
-	set_player_money_by_index = function(player_index, amount)
-		players_money[player_index] = amount
+	set_player_money = function(player, amount)
+		if player.connected then
+			online_players_money[player.index] = amount
+		else
+			offline_players_money[player.index] = amount
+		end
 	end,
-	set_player_money = function(player_index, amount)
-		players_money[player_index] = amount
+	set_online_player_money_by_index = function(player_index, amount)
+		online_players_money[player_index] = amount
+	end,
+	set_offline_player_money_by_index = function(player_index, amount)
+		offline_players_money[player_index] = amount
 	end,
 	set_force_money_by_index = function(force_index, amount)
 		forces_money[force_index] = amount
@@ -959,10 +1031,19 @@ remote.add_interface("EasyAPI", {
 		local new_amount = forces_money[force_index] + amount
 		forces_money[force_index] = new_amount
 	end,
-	deposit_player_money = function(player, amount)
+	deposit_player_money_by_index = function(player, amount)
 		local player_index = player.index
-		local new_amount = players_money[player_index] + amount
-		players_money[player_index] = new_amount
+		if player.connected then
+			online_players_money[player_index] = online_players_money[player_index] + amount
+		else
+			offline_players_money[player_index] = offline_players_money[player_index] + amount
+		end
+	end,
+	deposit_online_player_money_by_index = function(player_index, amount)
+		online_players_money[player_index] = online_players_money[player_index] + amount
+	end,
+	deposit_offline_player_money_by_index = function(player_index, amount)
+		offline_players_money[player_index] = offline_players_money[player_index] + amount
 	end,
 	get_void_force_index = function()
 		return void_force_index
@@ -983,6 +1064,9 @@ M.events = {
 	end,
 	[defines.events.on_player_joined_game] = function(event)
 		pcall(on_player_joined_game, event)
+	end,
+	[defines.events.on_player_left_game] = function(event)
+		pcall(on_player_left_game, event)
 	end,
 	[defines.events.on_player_changed_force] = function(event)
 		pcall(on_player_changed_force, event)

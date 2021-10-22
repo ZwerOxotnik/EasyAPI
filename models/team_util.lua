@@ -42,8 +42,8 @@ M.is_team_name_valid = is_team_name_valid
 
 
 ---@param name string
----@param caller ForceIdentification|PlayerIdentification|LuaGame
----@return ForceIdentification?
+---@param caller LuaForce|LuaPlayer|LuaGame
+---@return LuaForce?
 M.create_team = function(name, caller)
 	if #name > 32 then
 		caller.print({"too-long-team-name"}, RED_COLOR)
@@ -74,12 +74,12 @@ M.create_team = function(name, caller)
 	return new_team
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 M.add_team = function(force)
 	call("EasyAPI", "add_team", force)
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 M.remove_team = function(force)
 	call("EasyAPI", "remove_team", force.index)
 end

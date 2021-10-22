@@ -18,14 +18,14 @@ return {
   on_player_accepted_invite = script.generate_event_name(), -- {player_index, force}
 	-- Called when a force surrendered.
 	--	Contains:
-	--		force :: ForceIdentification: The force to be surrender
-	--		destination :: ForceIdentification (optional): The force to reassign entities to.
+	--		force :: LuaForce: The force to be surrender
+	--		destination :: LuaForce (optional): The force to reassign entities to.
 	on_surrender = script.generate_event_name(),
 
 	-- Called when someone/something was kicked from a team.
 	--	Contains:
 	--		player_index :: uint: The kicked player.
-	-- 		force :: ForceIdentification: previous force
+	-- 		force :: LuaForce: previous force
 	--		kicker :: uint or nil: A player/server/script who kicked the player.
   on_player_kicked_from_team = script.generate_event_name(),
 
@@ -44,8 +44,8 @@ return {
 	-- Diplomacy
 	-- Called when someone/something changed a diplomacy relationship to ally/neutral/enemy.
 	--	Contains:
-	--		source :: ForceIdentification: The force that changed current diplomacy relationship.
-	--		destination :: ForceIdentification: The force which have to accept new diplomacy relationship.
+	--		source :: LuaForce: The force that changed current diplomacy relationship.
+	--		destination :: LuaForce: The force which have to accept new diplomacy relationship.
 	--		player_index :: uint (optional): The player who cause the changing.
 	--		prev_relationship :: string: Previous relationship between forces.
 	on_ally = script.generate_event_name(),

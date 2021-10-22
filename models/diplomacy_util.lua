@@ -35,8 +35,8 @@ local on_enemy_event
 M.custom_events = {}
 
 
----@param force ForceIdentification
----@param other_force ForceIdentification|string
+---@param force LuaForce
+---@param other_force LuaForce|string
 ---@return string #ally|neutral|enemy
 local function get_stance_diplomacy(force, other_force)
 	if force.get_friend(other_force) then
@@ -49,8 +49,8 @@ local function get_stance_diplomacy(force, other_force)
 end
 M.get_stance_diplomacy = get_stance_diplomacy
 
----@param force ForceIdentification
----@param other_force ForceIdentification|string
+---@param force LuaForce
+---@param other_force LuaForce|string
 ---@return DIPLOMACY_TYPES
 M.get_stance_diplomacy_type = function(force, other_force)
 	if force.get_friend(other_force) then
@@ -74,8 +74,8 @@ M.get_stance_name_diplomacy_by_type = function(type)
 	end
 end
 
----@param force ForceIdentification
----@param other_force ForceIdentification
+---@param force LuaForce
+---@param other_force LuaForce
 ---@param player_index number
 M.declare_war = function(force, other_force, player_index)
 	local prev_relationship = get_stance_diplomacy(force, other_force)
@@ -86,8 +86,8 @@ M.declare_war = function(force, other_force, player_index)
 	script.raise_event(on_ally_event, {source = force, destination = other_force, player_index = player_index, prev_relationship = prev_relationship})
 end
 
----@param force ForceIdentification
----@param other_force ForceIdentification
+---@param force LuaForce
+---@param other_force LuaForce
 ---@param player_index number
 M.declare_neutrality = function(force, other_force, player_index)
 	local prev_relationship = get_stance_diplomacy(force, other_force)
@@ -98,8 +98,8 @@ M.declare_neutrality = function(force, other_force, player_index)
 	script.raise_event(on_neutral_event, {source = force, destination = other_force, player_index = player_index, prev_relationship = prev_relationship})
 end
 
----@param force ForceIdentification
----@param other_force ForceIdentification
+---@param force LuaForce
+---@param other_force LuaForce
 ---@param player_index number
 M.declare_peace = function(force, other_force, player_index)
 	local prev_relationship = get_stance_diplomacy(force, other_force)

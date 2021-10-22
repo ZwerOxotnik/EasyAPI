@@ -20,7 +20,7 @@ local on_transfered_force_money_event
 M.custom_events = {}
 
 
----@param force ForceIdentification
+---@param force LuaForce
 ---@param amount number
 ---@return boolean
 M.have_force_enough_money = function(force, amount)
@@ -32,11 +32,11 @@ M.have_force_enough_money = function(force, amount)
 	end
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@param amount number
 ---@return boolean
 M.have_player_enough_money = function(player, amount)
-	local balance = call("EasyAPI", "get_player_money", player.index)
+	local balance = call("EasyAPI", "get_player_money_by_index", player.index)
 	if balance and balance >= amount then
 		return true
 	else
@@ -44,54 +44,54 @@ M.have_player_enough_money = function(player, amount)
 	end
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 ---@param amount number
 M.set_force_balance = function(force, amount)
 	call("EasyAPI", "set_force_money", force, amount)
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@param amount number
 M.set_player_balance = function(player, amount)
-	call("EasyAPI", "set_player_money", player.index, amount)
+	call("EasyAPI", "set_player_money", player, amount)
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 ---@param amount number
 M.deposit_force = function(force, amount)
 	call("EasyAPI", "deposit_force_money", force, amount)
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@param amount number
 M.deposit_player = function(player, amount)
 	call("EasyAPI", "deposit_player_money", player, amount)
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 ---@param amount number
 M.withdraw_force = function(force, amount)
 	local balance = call("EasyAPI", "get_force_money", force.index) - amount
 	call("EasyAPI", "set_force_money", force, balance)
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@param amount number
 M.withdraw_player = function(player, amount)
-	local balance = call("EasyAPI", "get_player_money", player.index) - amount
-	call("EasyAPI", "set_player_money", player.index, balance)
+	local balance = call("EasyAPI", "get_player_money_by_index", player.index) - amount
+	call("EasyAPI", "set_player_money", player, balance)
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 ---@return number
 M.get_force_balance = function(force)
 	return call("EasyAPI", "get_force_money", force.index)
 end
 
----@param player PlayerIdentification
+---@param player LuaPlayer
 ---@return number
 M.get_player_balance = function(player)
-	return call("EasyAPI", "get_player_money", player.index)
+	return call("EasyAPI", "get_player_money_by_index", player.index)
 end
 
 ---@param player_index number
@@ -99,7 +99,7 @@ M.reset_player_balance = function(player_index)
 	call("EasyAPI", "reset_player_balance", player_index)
 end
 
----@param force ForceIdentification
+---@param force LuaForce
 M.reset_force_balance = function(force)
 	call("EasyAPI", "reset_player_balance", force)
 end
