@@ -53,7 +53,6 @@ local allow_create_team = settings.global["EAPI_allow_create_team"].value
 
 
 --#region Constants
-local match = string.match
 local custom_events = require("events")
 local raise_event = script.raise_event
 local constant_forces = {neutral = true, player = true, enemy = true}

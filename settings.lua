@@ -19,7 +19,3 @@ for _, data in pairs(runtime_settings) do
 	data.setting_type = "runtime-global"
 end
 data:extend(runtime_settings)
-
-data:extend({
-	{type = "bool-setting", name = "EAPI_enable-money-printer", setting_type = "startup", default_value = false}
-})

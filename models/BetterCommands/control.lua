@@ -221,7 +221,6 @@ end
 
 ---@return boolean
 local function on_runtime_mod_setting_changed(event)
-	if event.setting_type ~= "runtime-global" then return end
 	local setting_name = event.setting
 	if string.find(setting_name, '^' .. MOD_SHORT_NAME) ~= 1 then return end
 
