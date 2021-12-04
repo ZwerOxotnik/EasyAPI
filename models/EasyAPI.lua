@@ -60,6 +60,7 @@ local RED_COLOR = {1,0,0}
 local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
 local NOT_ENOUGH_MONEY = {"not-enough-money"}
+local print_to_rcon = rcon.print
 --#endregion
 
 
@@ -918,6 +919,10 @@ M.on_configuration_changed = function(event)
 end
 M.on_load = link_data
 
+--#endregion
+
+
+--#region Remote interfaces
 
 remote.add_interface("EasyAPI", {
 	get_event_name = function(name)
@@ -1051,6 +1056,52 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_void_surface_index = function()
 		return void_surface_index
+	end
+})
+
+remote.add_interface("EasyAPI_rcon", {
+	get_data = function()
+		print_to_rcon(game.table_to_json(mod_data))
+	end,
+	get_teams = function()
+		print_to_rcon(game.table_to_json(teams))
+	end,
+	get_teams_count = function()
+		print_to_rcon(#teams)
+	end,
+	find_team = function(index)
+		for _index, name in pairs(teams) do
+			if _index == index then
+				print_to_rcon(name)
+			end
+		end
+	end,
+	get_offline_players_money = function()
+		print_to_rcon(game.table_to_json(offline_players_money))
+	end,
+	get_online_players_money = function()
+		print_to_rcon(game.table_to_json(online_players_money))
+	end,
+	get_player_money_by_index = function(player_index)
+		print_to_rcon(online_players_money[player_index] or offline_players_money[player_index])
+	end,
+	get_online_player_money = function(player_index)
+		print_to_rcon(online_players_money[player_index])
+	end,
+	get_offline_player_money = function(player_index)
+		print_to_rcon(offline_players_money[player_index])
+	end,
+	get_forces_money = function()
+		print_to_rcon(game.table_to_json(forces_money))
+	end,
+	get_force_money = function(force_index)
+		print_to_rcon(forces_money[force_index])
+	end,
+	get_void_force_index = function()
+		print_to_rcon(void_force_index)
+	end,
+	get_void_surface_index = function()
+		print_to_rcon(void_surface_index)
 	end
 })
 
