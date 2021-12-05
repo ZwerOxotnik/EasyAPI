@@ -23,6 +23,10 @@ local offline_players_money
 ---@type table<number, number>
 local forces_money
 
+---@class server_list
+---@type table<number, table<string, any>>
+local server_list
+
 ---@type number
 local void_force_index
 
@@ -834,9 +838,11 @@ local function link_data()
 	forces_money = mod_data.forces_money
 	void_surface_index = mod_data.void_surface_index
 	void_force_index = mod_data.void_force_index
+	server_list = global.server_list
 end
 
 local function update_global_data()
+	global.server_list = global.server_list or {}
 	global.EasyAPI = global.EasyAPI or {}
 	mod_data = global.EasyAPI
 	mod_data.teams = mod_data.teams or {}
@@ -893,9 +899,7 @@ local function update_global_data()
 end
 
 
-M.on_init = function()
-	update_global_data()
-end
+M.on_init = update_global_data
 M.on_configuration_changed = function(event)
 	update_global_data()
 
@@ -1103,6 +1107,33 @@ remote.add_interface("EasyAPI_rcon", {
 	get_void_surface_index = function()
 		print_to_rcon(void_surface_index)
 	end
+})
+
+remote.add_interface("BridgeAPI", {
+	---@param name string
+	set_server_name = function(name)
+		global.server_name = name
+	end,
+	---@return string?
+	get_server_name = function()
+		return global.server_name
+	end,
+	get_server_name_for_rcon = function()
+		print_to_rcon(global.server_name)
+	end,
+	---@return server_list
+	get_server_list = function()
+		return server_list
+	end,
+	get_server_list_for_rcon = function()
+		print_to_rcon(game.table_to_json(server_list))
+	end,
+	---@param game string
+	---@param server_name string
+	---@param server_address? string
+	add_server = function(game, server_name, server_address)
+		server_list[#server_list+1] = {game = game, name = server_name, address = server_address}
+	end,
 })
 
 --#endregion
