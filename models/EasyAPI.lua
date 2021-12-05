@@ -23,8 +23,9 @@ local offline_players_money
 ---@type table<number, number>
 local forces_money
 
+--- {{game, name, address}}
 ---@class server_list
----@type table<number, table<string, any>>
+---@type table<number, table<string, string>>
 local server_list
 
 ---@type number
@@ -65,6 +66,8 @@ local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
 local NOT_ENOUGH_MONEY = {"not-enough-money"}
 local print_to_rcon = rcon.print
+local tremove = table.remove
+local tconcat = table.concat
 --#endregion
 
 
@@ -315,7 +318,7 @@ local function team_list_command(cmd)
 				data[#data+1] = ' '
 			end
 		end
-		return table.concat(data)
+		return tconcat(data)
 	end
 
 	local ally_forces = {}
@@ -1110,7 +1113,7 @@ remote.add_interface("EasyAPI_rcon", {
 })
 
 remote.add_interface("BridgeAPI", {
-	---@param name string
+	---@param name? string
 	set_server_name = function(name)
 		global.server_name = name
 	end,
@@ -1133,6 +1136,20 @@ remote.add_interface("BridgeAPI", {
 	---@param server_address? string
 	add_server = function(game, server_name, server_address)
 		server_list[#server_list+1] = {game = game, name = server_name, address = server_address}
+	end,
+	---@param server_name string
+	remove_server_by_name = function(server_name)
+		for i=1, #server_list do
+			local server = server_list[i]
+			if server.name == server_name then
+				tremove(server_list, i)
+				return
+			end
+		end
+	end,
+	clear_server_list = function()
+		global.server_list = {}
+		server_list = global.server_list
 	end,
 })
 
