@@ -23,9 +23,9 @@ local offline_players_money
 ---@type table<number, number>
 local forces_money
 
---- {{game, name, address}}
+--- {{game, name, address, mods = {name, version}}}
 ---@class server_list
----@type table<number, table<string, string>>
+---@type table<number, table<string, string|table>>
 local server_list
 
 ---@type number
@@ -1131,17 +1131,22 @@ remote.add_interface("BridgeAPI", {
 	get_server_list_for_rcon = function()
 		print_to_rcon(game.table_to_json(server_list))
 	end,
-	---@param game string
+	---@param game string # Factorio/Minecraft etc
 	---@param server_name string
-	---@param server_address? string
-	add_server = function(game, server_name, server_address)
-		server_list[#server_list+1] = {game = game, name = server_name, address = server_address}
+	---@param server_address? string # ip:port or server name
+	---@param mods? table<string, string> # {name = name, version = version}
+	add_server = function(game, server_name, server_address, mods)
+		server_list[#server_list+1] = {
+			game = game,
+			name = server_name,
+			address = server_address,
+			mods = mods or {}
+		}
 	end,
 	---@param server_name string
 	remove_server_by_name = function(server_name)
 		for i=1, #server_list do
-			local server = server_list[i]
-			if server.name == server_name then
+			if server_list[i].name == server_name then
 				tremove(server_list, i)
 				return
 			end
