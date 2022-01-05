@@ -23,7 +23,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'EasyAPI'
-copyright = '2021, ZwerOxotnik'
+copyright = '2021-2022, ZwerOxotnik'
 author = 'ZwerOxotnik'
 
 # The full version, including alpha/beta/rc tags

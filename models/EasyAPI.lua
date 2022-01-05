@@ -191,23 +191,28 @@ end
 local function on_player_created(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
+
+	online_players_money[player_index] = start_player_money
+
 	if player.admin then
 		game.permissions.get_group("Admin").add_player(player)
 	end
-	online_players_money[player_index] = start_player_money
 end
 
 local function on_player_joined_game(event)
 	local player_index = event.player_index
+	local player = game.get_player(player_index)
+	if not (player and player.valid) then return end
+
 	local money = offline_players_money[player_index]
 	if money then
 		online_players_money[player_index] = money
 		offline_players_money[player_index] = nil
 	end
 
-	local player = game.get_player(player_index)
-	if player.force.index == void_force_index then
-		player.force = default_force_name
+	local force = player.force
+	if force.index == void_force_index then
+		force = default_force_name
 	end
 end
 
@@ -659,6 +664,18 @@ local function withdraw_team_money_command(cmd)
 
 	forces_money[target.index] = forces_money[target.index] - amount
 	player.print(target.name .. "'s balance: " .. forces_money[target.index])
+end
+
+--TODO: improve
+local function ring_command(cmd)
+	local caller = game.get_player(cmd.player_index)
+	local target_player = game.get_player(cmd.parameter)
+	if not (target_player and target_player.valid) then return end
+	if caller == target_player then return end
+
+	target_player.play_sound{path = "utility/scenario_message"}
+	caller.print{"EasyAPI.ring-sender", target_player.name}
+	target_player.print{"EasyAPI.ring-target", caller.name}
 end
 
 local function pay_command(cmd)
@@ -1167,12 +1184,8 @@ M.events = {
 	[defines.events.on_player_created] = function(event)
 		pcall(on_player_created, event)
 	end,
-	[defines.events.on_player_joined_game] = function(event)
-		pcall(on_player_joined_game, event)
-	end,
-	[defines.events.on_player_left_game] = function(event)
-		pcall(on_player_left_game, event)
-	end,
+	[defines.events.on_player_joined_game] = on_player_joined_game,
+	[defines.events.on_player_left_game] = on_player_left_game,
 	[defines.events.on_player_changed_force] = function(event)
 		pcall(on_player_changed_force, event)
 	end,
@@ -1208,6 +1221,7 @@ M.commands = {
 	transfer_team_money = transfer_team_money_command,
 	convert_money = convert_money_command,
 	pay = pay_command,
+	ring = ring_command,
 	balance = balance_command,
 	team_balance = team_balance_command
 }

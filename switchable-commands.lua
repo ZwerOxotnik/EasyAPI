@@ -20,6 +20,7 @@ return {
 	remove_team = {name = "remove-team", input_type = "team", only_for_admin = true},
 	team_list = {name = "team-list", allow_for_server = true},
 	show_team = {name = "show-team", allow_for_server = true},
+	ring = {is_allowed_empty_args = false, input_type = "player"},
 	kick_teammate = {name = "kick-teammate", is_allowed_empty_args = false, input_type = "player"},
 	friendly_fire = {name = "friendly-fire", is_allowed_empty_args = false, only_for_admin = true},
 	set_money = {name = "set-money", is_allowed_empty_args = false, only_for_admin = true},
