@@ -1056,10 +1056,12 @@ remote.add_interface("EasyAPI", {
 	set_force_money = function(force, amount)
 		forces_money[force.index] = amount
 	end,
+	deposit_force_money_by_index = function(force_index, amount)
+		forces_money[force_index] = forces_money[force_index] + amount
+	end,
 	deposit_force_money = function(force, amount)
 		local force_index = force.index
-		local new_amount = forces_money[force_index] + amount
-		forces_money[force_index] = new_amount
+		forces_money[force_index] = forces_money[force_index] + amount
 	end,
 	deposit_player_money_by_index = function(player, amount)
 		local player_index = player.index
