@@ -159,7 +159,7 @@ local function reset_force_balance(force)
 end
 
 ---@param player LuaPlayer
----@param data players_money|forces_money
+---@param data online_players_money|forces_money
 ---@param index number
 local function convert_money(player, data, index)
 	local count = player.get_item_count("coin")
@@ -839,7 +839,7 @@ local function convert_money_command(cmd)
 	if forces_money[force_index] then
 		convert_money(player, forces_money, force_index)
 	elseif online_players_money[player_index] then
-		convert_money(player, forces_money, player_index)
+		convert_money(player, online_players_money, player_index)
 	else
 		player.print("No balance")
 	end
