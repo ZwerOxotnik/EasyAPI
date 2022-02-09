@@ -261,7 +261,7 @@ function M:create_settings()
 			type = "bool-setting",
 			name = MOD_SHORT_NAME .. key,
 			setting_type = "runtime-global",
-			default_value = command.default_value or false,
+			default_value = command.default_value or true,
 			localised_name = command_name,
 			localised_description = {'', command_name, ' ', description}
 		}
