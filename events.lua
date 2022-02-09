@@ -5,8 +5,8 @@
 
 return {
 	-- Rounds
-  on_round_end = script.generate_event_name(),
   on_round_start = script.generate_event_name(),
+  on_round_end = script.generate_event_name(),
 
 	-- Teams
   on_team_lost = script.generate_event_name(), -- {force}
@@ -14,26 +14,29 @@ return {
   on_player_joined_team = script.generate_event_name(), -- {player_index, force}
   on_new_team = script.generate_event_name(), -- {force}
 	on_pre_deleted_team = script.generate_event_name(), -- {force}
-  on_team_invited = script.generate_event_name(), -- {player_index, force}
+  on_new_team_base = script.generate_event_name(), -- {force, surface, position}
+  on_pre_deleted_team_base = script.generate_event_name(), -- {force}
+  on_player_invited_in_team = script.generate_event_name(), -- {inviter_index, target_index, force}
+  on_player_sent_join_request_in_team = script.generate_event_name(), -- {player_index, force}
   on_player_accepted_invite = script.generate_event_name(), -- {player_index, force}
 	-- Called when a force surrendered.
 	--	Contains:
 	--		force :: LuaForce: The force to be surrender
 	--		destination :: LuaForce (optional): The force to reassign entities to.
-	on_surrender = script.generate_event_name(),
+	on_pre_surrender = script.generate_event_name(),
 
 	-- Called when someone/something was kicked from a team.
 	--	Contains:
 	--		player_index :: uint: The kicked player.
 	-- 		force :: LuaForce: previous force
-	--		kicker :: uint or nil: A player/server/script who kicked the player.
+	--		kicker :: uint or nil: A player/server/script who kicked the player. (TODO: improve)
   on_player_kicked_from_team = script.generate_event_name(),
 
 	-- Money
   on_transfered_player_money = script.generate_event_name(), -- {receiver_index = player.index, payer_index = player.index}
   on_transfered_force_money = script.generate_event_name(), -- {receiver = force, payer = force}
 
-	-- Spawn
+	-- Spawn (no use yet)
 	on_new_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_new_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_new_force_spawn = script.generate_event_name(), -- {position, id = spawn_id}
@@ -68,6 +71,7 @@ return {
 	on_poke = script.generate_event_name(),
 
 	-- General
+  on_mod_load = script.generate_event_name(), -- {mod_name} -- TODO: check and add
   on_reload_scenario = script.generate_event_name(),
   on_new_character = script.generate_event_name(), -- {player_index}
   on_player_on_admin_surface = script.generate_event_name(), -- {player_index}

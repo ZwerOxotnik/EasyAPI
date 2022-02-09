@@ -8,8 +8,15 @@ local M = {}
 ---@type table<string, any>
 local mod_data
 
+---@class teams
 ---@type table<number, string>
 local teams
+
+---@class teams_base
+---@type table<number, table>
+---@field surface LuaSurface
+---@field position table
+local teams_base
 
 ---@class online_players_money
 ---@type table<number, number>
@@ -61,10 +68,7 @@ local allow_create_team = settings.global["EAPI_allow_create_team"].value
 local custom_events = require("events")
 local raise_event = script.raise_event
 local constant_forces = {neutral = true, player = true, enemy = true}
-local RED_COLOR = {1,0,0}
-local YELLOW_COLOR = {1,1,0}
 local MAX_TEAM_NAME_LENGTH = 32
-local NOT_ENOUGH_MONEY = {"not-enough-money"}
 local print_to_rcon = rcon.print
 local tremove = table.remove
 local tconcat = table.concat
@@ -253,8 +257,8 @@ local function on_player_demoted(event)
 	end
 end
 
-local function on_game_created_from_scenario(event)
-	raise_event(custom_events.on_new_team, {force = game.forces.player}) -- TODO: check, perhaps, something is wrong
+local function on_game_created_from_scenario()
+	raise_event(custom_events.on_new_team, {force = game.forces.player})
 end
 
 local mod_settings = {
@@ -266,8 +270,9 @@ local mod_settings = {
 	["EAPI_allow_create_team"] = function(value) allow_create_team = value end
 }
 local function on_runtime_mod_setting_changed(event)
-	local f = mod_settings[event.setting]
-	if f then f(settings.global[event.setting].value) end
+	local setting_name = event.setting
+	local f = mod_settings[setting_name]
+	if f then f(settings.global[setting_name].value) end
 end
 
 local function on_forces_merging(event)
@@ -282,15 +287,23 @@ local function on_forces_merged(event)
 end
 
 local function on_force_created(event)
-	forces_money[event.force.index] = start_force_money
+	local force = event.force
+	if not (force and force.valid) then return end
+
+	forces_money[force.index] = start_force_money
 end
 
 local function on_pre_deleted_team(event)
-	forces_money[event.force.index] = nil
+	local index = event.force.index
+	teams_base[index] = nil
+	forces_money[index] = nil
 end
 
 local function on_player_accepted_invite(event)
-	game.get_player(event.player_index).force = event.force
+	local player = game.get_player(event.player_index)
+	if not (player and player.valid) then return end
+
+	player.force = event.force
 end
 
 --#endregion
@@ -300,8 +313,8 @@ end
 
 local function team_list_command(cmd)
 	if cmd.player_index == 0 then
-		for name in pairs(game.forces) do
-			print(name)
+		for name, force in pairs(game.forces) do
+			print("name: " .. name .. ", index: " .. force.index)
 		end
 		return
 	end
@@ -429,7 +442,7 @@ local function create_new_team_command(cmd)
 	end
 
 	if #cmd.parameter > (MAX_TEAM_NAME_LENGTH + 2) then
-		player.print({"too-long-team-name"}, RED_COLOR)
+		player.print({"too-long-team-name"}, {1, 0, 0})
 		return
 	end
 	local team_name = trim(cmd.parameter)
@@ -573,7 +586,7 @@ local function deposit_money_command(cmd)
 		player.print("Your balance: " .. result)
 		player.print(force.name .. "'s balance: " .. forces_money[force.index])
 	else
-		player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
+		player.print({"not-enough-money"}, {1, 1, 0})
 	end
 end
 
@@ -610,7 +623,7 @@ local function withdraw_money_command(cmd)
 		player.print("Your balance: " .. player_balance)
 		player.print(force.name .. "'s balance: " .. result)
 	else
-		player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
+		player.print({"not-enough-money"}, {1, 1, 0})
 	end
 end
 
@@ -715,7 +728,7 @@ local function pay_command(cmd)
 			raise_event(custom_events.on_transfered_player_money, {receiver_index = target.index, payer_index = target.index})
 			player.print("Your balance: " .. result)
 		else
-			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
+			player.print({"not-enough-money"}, {1, 1, 0})
 		end
 	end
 end
@@ -772,7 +785,7 @@ local function team_balance_command(cmd)
 	if forces_money[force.index] then
 		caller.print(target.name .. "'s balance: " .. forces_money[force.index])
 	else
-		caller.print("No balance for the force", RED_COLOR)
+		caller.print("No balance for the force", {1, 0, 0})
 	end
 end
 
@@ -800,7 +813,7 @@ local function transfer_team_money_command(cmd)
 			player.print({"force-doesnt-exist", args[1]})
 			return
 		elseif target == player.force then
-			player.print("You can't transfer money to your own team", RED_COLOR)
+			player.print("You can't transfer money to your own team", {1, 0, 0})
 			return
 		elseif forces_money[target.index] == nil then
 			player.print("Target force doesn't have balance")
@@ -815,7 +828,7 @@ local function transfer_team_money_command(cmd)
 			raise_event(custom_events.on_transfered_force_money, {receiver = target, payer = force})
 			player.print(force.name .. "'s balance: " .. result)
 		else
-			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
+			player.print({"not-enough-money"}, {1, 1, 0})
 		end
 	else--if #args == 1 then
 		target = player.force
@@ -827,7 +840,7 @@ local function transfer_team_money_command(cmd)
 			forces_money[target_index] = forces_money[target_index] + amount
 			player.print("Your balance: " .. online_players_money[caller_index])
 		else
-			player.print(NOT_ENOUGH_MONEY, YELLOW_COLOR)
+			player.print({"not-enough-money"}, {1, 1, 0})
 		end
 	end
 end
@@ -855,6 +868,7 @@ local function link_data()
 	teams = mod_data.teams
 	online_players_money = mod_data.online_players_money
 	offline_players_money = mod_data.offline_players_money
+	teams_base = mod_data.teams_base
 	forces_money = mod_data.forces_money
 	void_surface_index = mod_data.void_surface_index
 	void_force_index = mod_data.void_force_index
@@ -869,6 +883,7 @@ local function update_global_data()
 	mod_data.online_players_money = mod_data.online_players_money or {}
 	mod_data.offline_players_money = mod_data.offline_players_money or {}
 	mod_data.forces_money = mod_data.forces_money or {}
+	mod_data.teams_base = mod_data.teams_base or {}
 
 	local forces = game.forces
 	if forces["void"] == nil then
@@ -961,6 +976,31 @@ remote.add_interface("EasyAPI", {
 	add_team = function(force)
 		teams[force.index] = force.name
 		raise_event(custom_events.on_new_team, {force = force})
+	end,
+	---@param force LuaForce
+	---@param position table
+	---@return boolean?
+	change_team_base = function(force, surface, position)
+		teams_base[force.index] = {surface = surface, position = position}
+		raise_event(custom_events.on_new_team_base, {force = force, surface = surface, position = position})
+	end,
+	---@param force LuaForce
+	remove_team_base = function(force)
+		raise_event(custom_events.on_pre_deleted_team_base, {force = force})
+		teams_base[force.index] = nil
+	end,
+	---@param force_index number
+	---@return teams_base?
+	get_team_base_by_index = function(force_index)
+		return teams_base[force_index]
+	end,
+	---@param force_index number
+	---@return boolean
+	has_team_base_by_index = function(force_index)
+		if teams_base[force_index] then
+			return true
+		end
+		return false
 	end,
 	get_teams = function()
 		return teams

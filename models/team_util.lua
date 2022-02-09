@@ -9,7 +9,6 @@ local M = {}
 
 --#region constants
 local call = remote.call
-local RED_COLOR = {1, 0, 0}
 --#endregion
 
 
@@ -46,7 +45,7 @@ M.is_team_name_valid = is_team_name_valid
 ---@return LuaForce?
 M.create_team = function(name, caller)
 	if #name > 32 then
-		caller.print({"too-long-team-name"}, RED_COLOR)
+		caller.print({"too-long-team-name"}, {1, 0, 0})
 		return
 	end
 
@@ -63,9 +62,8 @@ M.create_team = function(name, caller)
 	if game.forces[name] then
 		caller.print({"gui-map-editor-force-editor.new-force-name-already-used", name})
 		return
-	end
-	if is_team_name_valid(name) == false then
-		caller.print("The name contains invalid symbols", RED_COLOR)
+	elseif is_team_name_valid(name) == false then
+		caller.print("The name contains invalid symbols", {1, 0, 0})
 		return
 	end
 

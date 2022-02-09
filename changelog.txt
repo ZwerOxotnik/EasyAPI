@@ -1,4 +1,10 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.9.0
+Date: 2022-02-09
+  Scripting:
+    - Changed some events
+    - Added some events and extended remote interface for https://github.com/ZwerOxotnik/factorio-BTeams
+---------------------------------------------------------------------------------------------------
 Version: 0.8.2
 Date: 2022-01-16
   Bugfixes:
