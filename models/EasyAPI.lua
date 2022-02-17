@@ -1305,6 +1305,36 @@ M.commands = {
 		else
 			player.print({"error.error-message-box-title"})
 		end
+	end,
+	["goto"] = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local target = game.get_player(cmd.parameter)
+		if not (target and target.valid) then
+			player.print({"player-doesnt-exist", cmd.parameter})
+			return
+		elseif player == target then
+			player.print({"error.error-message-box-title"})
+			return
+		end
+
+		local surface = target.surface
+		local character = player.character
+		if character == nil then
+			player.teleport(target.position, surface)
+			return
+		end
+
+		local position = surface.find_non_colliding_position{
+			name = character.name,
+			center = target.position,
+			radius = 50,
+			precision = 1
+		}
+		if position then
+			player.teleport(position, surface)
+		else
+			player.print({"error.error-message-box-title"})
+		end
 	end
 }
 

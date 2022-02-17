@@ -31,6 +31,7 @@ return {
 	withdraw_team_money = {name = "withdraw-team-money", is_allowed_empty_args = false, only_for_admin = true},
 	transfer_team_money = {name = "transfer-team-money", is_allowed_empty_args = false},
 	bring = {is_allowed_empty_args = false, only_for_admin = true, input_type = "player"},
+	["goto"] = {is_allowed_empty_args = false, only_for_admin = true, input_type = "player"},
 	convert_money = {name = "convert-money"},
 	pay = {is_allowed_empty_args = false},
 	balance = {},
