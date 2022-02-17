@@ -195,11 +195,15 @@ end
 local function on_player_created(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
+	if not (player and player.valid) then return end
 
 	online_players_money[player_index] = start_player_money
 
 	if player.admin then
-		game.permissions.get_group("Admin").add_player(player)
+		local group = game.permissions.get_group("Admin")
+		if group then
+			group.add_player(player)
+		end
 	end
 end
 
@@ -230,14 +234,35 @@ local function on_player_left_game(event)
 end
 
 local function on_player_changed_force(event)
-	local target_force = game.get_player(event.player_index).force
+	local player_index = event.player_index
+	local player = game.get_player(player_index)
+	if not (player and player.valid) then return end
+
+	local target_force = player.force
 	if teams[target_force.index] then
-		raise_event(custom_events.on_player_joined_team, {player_index = event.player_index, force = target_force})
+		raise_event(custom_events.on_player_joined_team, {player_index = player_index, force = target_force})
+	end
+end
+
+local function on_player_demoted(event)
+	local player = game.get_player(event.player_index)
+	if not (player and player.valid) then return end
+
+	if player.permission_group.name == "Admin" then
+		local group = game.permissions.get_group(default_permission_group)
+		if group then
+			group.add_player(player)
+		end
 	end
 end
 
 local function on_player_promoted(event)
-	game.permissions.get_group("Admin").add_player(game.get_player(event.player_index))
+	local player = game.get_player(event.player_index)
+	if not (player and player.valid) then return end
+
+	local admin_group = game.permissions.get_group("Admin")
+	if admin_group == nil then return end
+	admin_group.add_player(player)
 end
 
 local function on_pre_player_removed(event)
@@ -247,13 +272,6 @@ local function on_pre_player_removed(event)
 	-- send player money to force
 	if forces_money[force_index] and player_money then
 		forces_money[force_index] = forces_money[force_index] + player_money
-	end
-end
-
-local function on_player_demoted(event)
-	local player = game.get_player(event.player_index)
-	if player.permission_group.name == "Admin" then
-		game.permissions.get_group(default_permission_group).add_player(player)
 	end
 end
 
@@ -1223,20 +1241,12 @@ remote.add_interface("BridgeAPI", {
 M.events = {
 	[defines.events.on_game_created_from_scenario] = on_game_created_from_scenario,
 	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
-	[defines.events.on_player_created] = function(event)
-		pcall(on_player_created, event)
-	end,
+	[defines.events.on_player_created] = on_player_created,
 	[defines.events.on_player_joined_game] = on_player_joined_game,
 	[defines.events.on_player_left_game] = on_player_left_game,
-	[defines.events.on_player_changed_force] = function(event)
-		pcall(on_player_changed_force, event)
-	end,
-	[defines.events.on_player_demoted] = function(event)
-		pcall(on_player_demoted, event)
-	end,
-	[defines.events.on_player_promoted] = function(event)
-		pcall(on_player_promoted, event)
-	end,
+	[defines.events.on_player_changed_force] = on_player_changed_force,
+	[defines.events.on_player_demoted] = on_player_demoted,
+	[defines.events.on_player_promoted] = on_player_promoted,
 	[defines.events.on_pre_player_removed] = on_pre_player_removed,
 	[defines.events.on_player_removed] = clear_player_data,
 	[defines.events.on_forces_merging] = on_forces_merging,
@@ -1265,7 +1275,37 @@ M.commands = {
 	pay = pay_command,
 	ring = ring_command,
 	balance = balance_command,
-	team_balance = team_balance_command
+	team_balance = team_balance_command,
+	bring = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local target = game.get_player(cmd.parameter)
+		if not (target and target.valid) then
+			player.print({"player-doesnt-exist", cmd.parameter})
+			return
+		elseif player == target then
+			player.print({"error.error-message-box-title"})
+			return
+		end
+
+		local surface = player.surface
+		local character = target.character
+		if character == nil then
+			target.teleport(player.position, surface)
+			return
+		end
+
+		local position = surface.find_non_colliding_position{
+			name = character.name,
+			center = player.position,
+			radius = 50,
+			precision = 1
+		}
+		if position then
+			target.teleport(position, surface)
+		else
+			player.print({"error.error-message-box-title"})
+		end
+	end
 }
 
 
