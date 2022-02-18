@@ -576,8 +576,6 @@ local function set_team_money_command(cmd)
 end
 
 local function deposit_money_command(cmd)
-	local args = {}
-	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	if online_players_money[player_index] == nil then
@@ -590,6 +588,9 @@ local function deposit_money_command(cmd)
 		player.print({"no-team-balance"})
 		return
 	end
+
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
 	local amount = tonumber(args[1])
 	if amount == nil or amount <= 0 then
@@ -609,9 +610,6 @@ local function deposit_money_command(cmd)
 end
 
 local function withdraw_money_command(cmd)
-	local args = {}
-	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
-
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	if online_players_money[player_index] == nil then
@@ -624,6 +622,9 @@ local function withdraw_money_command(cmd)
 		player.print({"no-team-balance"})
 		return
 	end
+
+	local args = {}
+	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
 	local amount = tonumber(args[1])
 	if amount == nil or amount <= 0 then
@@ -1308,11 +1309,42 @@ M.commands = {
 	end,
 	["goto"] = function(cmd)
 		local player = game.get_player(cmd.player_index)
-		local target = game.get_player(cmd.parameter)
+		local parameter = cmd.parameter
+		local target
+		if parameter == nil then
+			target = player.selected
+		else
+			target = game.get_player(parameter)
+		end
+
 		if not (target and target.valid) then
-			player.print({"player-doesnt-exist", cmd.parameter})
+			if parameter == nil then
+				--TODO: change message
+				player.print({"error.error-message-box-title"})
+				return
+			end
+
+			local x, y
+			local args = {}
+			for arg in string.gmatch(parameter, "%g+") do args[#args+1] = arg end
+			if #args == 1 then
+				x = string.gsub(parameter, ".*%[gps=(%-?%d+).*", "%1")
+				y = string.gsub(parameter, ".*%[gps=.+,(%-?%d+).*", "%1")
+				x = tonumber(x)
+				y = tonumber(y)
+			elseif #args == 2 then
+				x = tonumber(args[1])
+				y = tonumber(args[2])
+			end
+
+			if x == nil or y == nil then
+				player.print({"player-doesnt-exist", parameter})
+				return
+			end
+			player.teleport({x, y}, player.surface)
 			return
 		elseif player == target then
+			--TODO: change message
 			player.print({"error.error-message-box-title"})
 			return
 		end
@@ -1324,18 +1356,76 @@ M.commands = {
 			return
 		end
 
-		local position = surface.find_non_colliding_position{
-			name = character.name,
-			center = target.position,
-			radius = 50,
-			precision = 1
-		}
+		local position = surface.find_non_colliding_position(
+			character.name, target.position, 50, 1
+		)
 		if position then
 			player.teleport(position, surface)
 		else
+			--TODO: change message
 			player.print({"error.error-message-box-title"})
 		end
-	end
+	end,
+	["cloak"] = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local parameter = cmd.parameter
+		if parameter == nil then
+			player.show_on_map = false
+			return
+		end
+
+		local target = game.get_player(parameter)
+		if not (target and target.valid) then
+			player.print({"player-doesnt-exist", parameter})
+			return
+		end
+
+		target.show_on_map = false
+	end,
+	["uncloak"] = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local parameter = cmd.parameter
+		if parameter == nil then
+			player.show_on_map = true
+			return
+		end
+
+		local target = game.get_player(parameter)
+		if not (target and target.valid) then
+			player.print({"player-doesnt-exist", parameter})
+			return
+		end
+
+		target.show_on_map = true
+	end,
+	hp = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local target = player.selected
+		if not (target and target.valid) then
+			player.print({"error.error-message-box-title"})
+			return
+		end
+
+		local health = tonumber(cmd.parameter)
+		if health == nil then
+			--TODO: change message
+			player.print({"error.error-message-box-title"})
+			return
+		end
+
+		target.health = health
+	end,
+	["play-sound"] = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local sound_path = cmd.parameter
+		if game.is_valid_sound_pat(sound_path) then
+			game.play_sound{path = sound_path}
+		else
+			--TODO: change message
+			player.print({"error.error-message-box-title"})
+			return
+		end
+	end,
 }
 
 
