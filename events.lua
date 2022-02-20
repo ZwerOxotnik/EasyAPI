@@ -11,7 +11,7 @@ return {
 	-- Teams
   on_team_lost = script.generate_event_name(), -- {force}
   on_team_won = script.generate_event_name(), -- {force}
-  on_player_joined_team = script.generate_event_name(), -- {player_index, force}
+  on_player_joined_team = script.generate_event_name(), -- {player_index, force, prev_force}
   on_new_team = script.generate_event_name(), -- {force}
 	on_pre_deleted_team = script.generate_event_name(), -- {force}
   on_new_team_base = script.generate_event_name(), -- {force, surface, position}

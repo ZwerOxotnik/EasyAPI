@@ -240,7 +240,14 @@ local function on_player_changed_force(event)
 
 	local target_force = player.force
 	if teams[target_force.index] then
-		raise_event(custom_events.on_player_joined_team, {player_index = player_index, force = target_force})
+		raise_event(
+			custom_events.on_player_joined_team,
+			{
+				player_index = player_index,
+				force = target_force,
+				prev_force = event.force
+			}
+		)
 	end
 end
 
@@ -1358,6 +1365,23 @@ M.commands = {
 
 		local position = surface.find_non_colliding_position(
 			character.name, target.position, 50, 1
+		)
+		if position then
+			player.teleport(position, surface)
+		else
+			--TODO: change message
+			player.print({"error.error-message-box-title"})
+		end
+	end,
+	["unstuck"] = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local character = player.character
+		--TODO: add message
+		if character == nil then return end
+
+		local surface = player.surface
+		local position = surface.find_non_colliding_position(
+			character.name, player.position, 5, 1
 		)
 		if position then
 			player.teleport(position, surface)

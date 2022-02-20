@@ -40,4 +40,5 @@ return {
 	cloak   = {only_for_admin = true, default_value = false},
 	hp = {is_allowed_empty_args = false, only_for_admin = true, default_value = false},
 	["play-sound"] = {is_allowed_empty_args = false, only_for_admin = true, default_value = false},
+	unstuck = {is_allowed_empty_args = true},
 }
