@@ -284,6 +284,8 @@ end
 
 local function on_game_created_from_scenario()
 	raise_event(custom_events.on_new_team, {force = game.forces.player})
+	raise_event(custom_events.on_new_team, {force = game.forces.enemy})
+	raise_event(custom_events.on_new_team, {force = game.forces.neutral})
 end
 
 local mod_settings = {
