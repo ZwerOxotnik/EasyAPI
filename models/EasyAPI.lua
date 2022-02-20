@@ -1302,12 +1302,9 @@ M.commands = {
 			return
 		end
 
-		local position = surface.find_non_colliding_position{
-			name = character.name,
-			center = player.position,
-			radius = 50,
-			precision = 1
-		}
+		local position = surface.find_non_colliding_position(
+			character.name, player.position, 50, 1
+		)
 		if position then
 			target.teleport(position, surface)
 		else
