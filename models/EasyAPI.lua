@@ -238,16 +238,24 @@ local function on_player_changed_force(event)
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
 
+	local prev_force = event.force
 	local target_force = player.force
 	if teams[target_force.index] then
+		if teams[prev_force.index] then
+			prev_force.print({"EasyAPI.player-switched-team", player.name, target_force.name})
+		end
+		target_force.print({"EasyAPI.player-joined-team", player.name})
+
 		raise_event(
 			custom_events.on_player_joined_team,
 			{
 				player_index = player_index,
 				force = target_force,
-				prev_force = event.force
+				prev_force = prev_force
 			}
 		)
+	else
+		prev_force.print({"EasyAPI.player-left-team", player.name})
 	end
 end
 
