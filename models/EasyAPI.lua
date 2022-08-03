@@ -1095,8 +1095,16 @@ remote.add_interface("EasyAPI", {
 	get_offline_players_money = function()
 		return offline_players_money
 	end,
+	set_offline_players_money = function(data)
+		mod_data.offline_players_money = data
+		offline_players_money = mod_data.offline_players_money
+	end,
 	get_online_players_money = function()
 		return online_players_money
+	end,
+	set_online_players_money = function(data)
+		mod_data.online_players_money = data
+		online_players_money = mod_data.online_players_money
 	end,
 	get_player_money_by_index = function(player_index)
 		return online_players_money[player_index] or offline_players_money[player_index]
@@ -1109,6 +1117,10 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_forces_money = function()
 		return forces_money
+	end,
+	set_forces_money = function(data)
+		mod_data.forces_money = data
+		forces_money = mod_data.forces_money
 	end,
 	get_force_money = function(force_index)
 		return forces_money[force_index]

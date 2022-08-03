@@ -1,4 +1,9 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.9.11
+Date: 2022-03-08
+  Scripting:
+    - Added new functions to the mod remote interface: set_offline_players_money(data), set_online_players_money(data), set_forces_money(data)
+---------------------------------------------------------------------------------------------------
 Version: 0.9.10
 Date: 2022-05-25
   Features:
