@@ -114,7 +114,7 @@ local function create_lobby_surface()
 	surface.request_to_generate_chunks({0, 0}, 1)
 	surface.force_generate_chunk_requests()
 	surface.set_tiles({{name = "out-of-map", position = {0, 0}}})
-  return surface
+	return surface
 end
 
 local function create_void_surface()
@@ -126,7 +126,7 @@ local function create_void_surface()
 	surface.force_generate_chunk_requests()
 	surface.set_tiles({{name = "out-of-map", position = {0, 0}}})
 	mod_data.void_surface_index = surface.index
-  return surface
+	return surface
 end
 
 local function reset_balances()
@@ -164,7 +164,7 @@ end
 
 ---@param player LuaPlayer
 ---@param data online_players_money|forces_money
----@param index number
+---@param index integer
 local function convert_money(player, data, index)
 	local count = player.get_item_count("coin")
 	if count > 0 then
@@ -184,6 +184,25 @@ local function convert_money(player, data, index)
 		player.print("Added: " .. count)
 	else
 		player.print("Nothing found")
+	end
+end
+
+---@param player LuaPlayer
+---@param data online_players_money|forces_money
+---@param index integer
+---@param amount integer
+local function get_money(player, data, index, amount)
+
+	local current_balance = data[index]
+	if amount > current_balance then
+		amount = current_balance
+	end
+
+	-- TODO: improve
+	local stack_data = {name = "coin", count = amount}
+	if player.can_insert(stack_data) then
+		player.insert(stack_data)
+		data[index] = current_balance - amount
 	end
 end
 
@@ -619,6 +638,7 @@ local function deposit_money_command(cmd)
 	if result >= 0 then
 		online_players_money[player_index] = result
 		forces_money[force.index] = forces_money[force.index] + amount
+		-- TODO: add localization
 		player.print("Your balance: " .. result)
 		player.print(force.name .. "'s balance: " .. forces_money[force.index])
 	else
@@ -690,14 +710,14 @@ local function deposit_team_money_command(cmd)
 	player.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
-local function withdraw_team_money_command(cmd)
+local function destroy_team_money_command(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player = game.get_player(cmd.player_index)
 
 	local amount = tonumber(args[2] or args[1])
 	if amount == nil or amount <= 0 then
-		player.print({"EasyAPI-commands.withdraw-team-money"})
+		player.print({"EasyAPI-commands.destroy-team-money"})
 		return
 	end
 
@@ -893,8 +913,46 @@ local function convert_money_command(cmd)
 	elseif online_players_money[player_index] then
 		convert_money(player, online_players_money, player_index)
 	else
+		-- TODO: add localization
 		player.print("No balance")
 	end
+end
+
+local function get_money_command(cmd)
+	local player_index = cmd.player_index
+	local player = game.get_player(player_index)
+	local player_force = player.force
+	local force_index = player_force.index
+
+
+	local amount = tonumber(trim(cmd.parameter))
+	if amount == nil then
+		-- TODO: change
+		player.print("NaN")
+	elseif amount <= 0 then
+		-- TODO: change
+		player.print("Invalid number")
+	end
+	---@cast amount integer
+
+	local current_forces_money = forces_money[force_index]
+	if current_forces_money and current_forces_money > 0 then
+		get_money(player, forces_money, force_index, amount)
+		-- TODO: add localization
+		player.print("Your balance: " .. forces_money[force_index])
+		return
+	end
+
+	local current_player_money = online_players_money[player_index]
+	if current_player_money and current_player_money > 0 then
+		get_money(player, online_players_money, player_index, amount)
+		-- TODO: add localization
+		player.print(player_force.name .. "'s balance: " .. forces_money[force_index])
+		return
+	end
+
+	-- TODO: add localization
+	player.print("No balance")
 end
 
 --#endregion
@@ -1302,9 +1360,10 @@ M.commands = {
 	deposit_money = deposit_money_command,
 	withdraw_money = withdraw_money_command,
 	deposit_team_money = deposit_team_money_command,
-	withdraw_team_money = withdraw_team_money_command,
+	destroy_team_money = destroy_team_money_command,
 	transfer_team_money = transfer_team_money_command,
 	convert_money = convert_money_command,
+	get_money = get_money_command,
 	pay = pay_command,
 	ring = ring_command,
 	balance = balance_command,
