@@ -656,6 +656,7 @@ local function withdraw_money_command(cmd)
 		local caller_index = player.index
 		online_players_money[caller_index] = online_players_money[caller_index] + amount
 		local player_balance = online_players_money[caller_index]
+		-- TODO: add localization
 		player.print("Your balance: " .. player_balance)
 		player.print(force.name .. "'s balance: " .. result)
 	else
@@ -711,8 +712,10 @@ local function withdraw_team_money_command(cmd)
 		target = player.force
 	end
 
-	forces_money[target.index] = forces_money[target.index] - amount
-	player.print(target.name .. "'s balance: " .. forces_money[target.index])
+	local target_index = target.index
+	forces_money[target_index] = (forces_money[target_index] or 0) - amount
+	-- TODO: add localization
+	player.print(target.name .. "'s balance: " .. forces_money[target_index])
 end
 
 --TODO: improve
