@@ -23,13 +23,6 @@
 			}
 		},
 		{
-			"label": "Handle sounds",
-			"type": "shell",
-			"command": "bash",
-			"args": [".scripts/handle_sounds.sh"],
-			"group": "build"
-		},
-		{
 			"label": "Luacheck",
 			"type": "shell",
 			"command": "luacheck",
