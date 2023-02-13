@@ -983,7 +983,7 @@ local function update_global_data()
 	mod_data.teams_base = mod_data.teams_base or {}
 
 	local forces = game.forces
-	if forces["void"] == nil then
+	if forces.void == nil then
 		mod_data.void_force_index = game.create_force("void").index
 	end
 	create_void_surface()
@@ -1027,7 +1027,9 @@ local function update_global_data()
 		end
 	end
 
-	forces_money[void_force_index] = nil
+	if forces_money[void_force_index] then
+		forces_money[void_force_index] = nil
+	end
 end
 
 
