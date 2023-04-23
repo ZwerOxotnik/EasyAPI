@@ -12,10 +12,18 @@ local mod_data
 ---@type table<number, string>
 local teams
 
+---@class virtual_base_resources
+---@type table<integer, table<string, integer>>
+local virtual_base_resources
+
+---@class virtual_base_resources_rich_text
+---@type table<string, string>
+local virtual_base_resources_rich_text
+
 ---@class teams_base
----@type table<number, table>
 ---@field surface LuaSurface
 ---@field position table
+---@type table<number, table>
 local teams_base
 
 ---@class online_players_money
@@ -337,14 +345,18 @@ local function on_forces_merging(event)
 end
 
 local function on_forces_merged(event)
-	teams[event.source_index] = nil
+	local source_index = event.source_index
+	teams[source_index] = nil
+	virtual_base_resources[source_index] = nil
 end
 
 local function on_force_created(event)
 	local force = event.force
 	if not (force and force.valid) then return end
 
-	forces_money[force.index] = start_force_money
+	local force_index = force.index
+	forces_money[force_index] = start_force_money
+	virtual_base_resources[force_index] = {}
 end
 
 local function on_pre_deleted_team(event)
@@ -970,6 +982,8 @@ local function link_data()
 	void_surface_index = mod_data.void_surface_index
 	void_force_index = mod_data.void_force_index
 	server_list = global.server_list
+	virtual_base_resources = mod_data.virtual_base_resources
+	virtual_base_resources_rich_text = mod_data.virtual_base_resources_rich_text
 end
 
 local function update_global_data()
@@ -981,6 +995,8 @@ local function update_global_data()
 	mod_data.offline_players_money = mod_data.offline_players_money or {}
 	mod_data.forces_money = mod_data.forces_money or {}
 	mod_data.teams_base = mod_data.teams_base or {}
+	mod_data.virtual_base_resources = mod_data.virtual_base_resources or {}
+	mod_data.virtual_base_resources_rich_text = mod_data.virtual_base_resources_rich_text or {}
 
 	local forces = game.forces
 	if forces.void == nil then
@@ -1000,6 +1016,13 @@ local function update_global_data()
 		local player_force = forces.player
 		teams[player_force.index] = "player"
 		forces_money[player_force.index] = start_force_money
+	end
+
+	for _, force in pairs(game.forces) do
+		local force_index = force.index
+		if force.valid then
+			virtual_base_resources[force_index] = virtual_base_resources[force_index] or {}
+		end
 	end
 
 	for player_index, player in pairs(game.players) do
@@ -1152,6 +1175,34 @@ remote.add_interface("EasyAPI", {
 	reset_offline_player_balance = reset_offline_player_balance,
 	reset_online_player_balance = reset_online_player_balance,
 	reset_force_balance = reset_force_balance,
+	get_all_virtual_base_resources = function()
+		return virtual_base_resources
+	end,
+	set_all_virtual_base_resources = function(data)
+		mod_data.virtual_base_resources = data
+		virtual_base_resources = data
+	end,
+	get_virtual_base_resources_by_force_index = function(force_index)
+		return virtual_base_resources[force_index]
+	end,
+	get_virtual_base_resource_by_force_index = function(force_index, name)
+		return virtual_base_resources[force_index][name]
+	end,
+	set_virtual_base_resources_by_force_index = function(force_index, data)
+		virtual_base_resources[force_index] = data
+	end,
+	set_virtual_base_resource_by_force_index = function(force_index, name, amount)
+		virtual_base_resources[force_index][name] = amount
+	end,
+	get_virtual_base_resources_rich_text = function()
+		return virtual_base_resources_rich_text
+	end,
+	get_virtual_base_resource_rich_text = function(name)
+		return virtual_base_resources_rich_text[name]
+	end,
+	set_virtual_base_resource_rich_text = function(name, text)
+		virtual_base_resources_rich_text[name] = text
+	end,
 	get_players_money = function()
 		return online_players_money, offline_players_money
 	end,
@@ -1160,14 +1211,14 @@ remote.add_interface("EasyAPI", {
 	end,
 	set_offline_players_money = function(data)
 		mod_data.offline_players_money = data
-		offline_players_money = mod_data.offline_players_money
+		offline_players_money = data
 	end,
 	get_online_players_money = function()
 		return online_players_money
 	end,
 	set_online_players_money = function(data)
 		mod_data.online_players_money = data
-		online_players_money = mod_data.online_players_money
+		online_players_money = data
 	end,
 	get_player_money_by_index = function(player_index)
 		return online_players_money[player_index] or offline_players_money[player_index]
@@ -1183,7 +1234,7 @@ remote.add_interface("EasyAPI", {
 	end,
 	set_forces_money = function(data)
 		mod_data.forces_money = data
-		forces_money = mod_data.forces_money
+		forces_money = data
 	end,
 	get_force_money = function(force_index)
 		return forces_money[force_index]
@@ -1252,6 +1303,9 @@ remote.add_interface("EasyAPI_rcon", {
 				print_to_rcon(name)
 			end
 		end
+	end,
+	get_all_virtual_base_resources = function()
+		print_to_rcon(game.table_to_json(virtual_base_resources))
 	end,
 	get_offline_players_money = function()
 		print_to_rcon(game.table_to_json(offline_players_money))
