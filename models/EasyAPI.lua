@@ -16,9 +16,9 @@ local teams
 ---@type table<integer, table<string, integer>>
 local virtual_base_resources
 
----@class virtual_base_resources_rich_text
----@type table<string, string>
-local virtual_base_resources_rich_text
+---@class virtual_base_resources_general_data
+---@type table<string, table<string, any>>
+local virtual_base_resources_general_data
 
 ---@class teams_base
 ---@field surface LuaSurface
@@ -983,7 +983,7 @@ local function link_data()
 	void_force_index = mod_data.void_force_index
 	server_list = global.server_list
 	virtual_base_resources = mod_data.virtual_base_resources
-	virtual_base_resources_rich_text = mod_data.virtual_base_resources_rich_text
+	virtual_base_resources_general_data = mod_data.virtual_base_resources_general_data
 end
 
 local function update_global_data()
@@ -996,7 +996,7 @@ local function update_global_data()
 	mod_data.forces_money = mod_data.forces_money or {}
 	mod_data.teams_base = mod_data.teams_base or {}
 	mod_data.virtual_base_resources = mod_data.virtual_base_resources or {}
-	mod_data.virtual_base_resources_rich_text = mod_data.virtual_base_resources_rich_text or {}
+	mod_data.virtual_base_resources_general_data = mod_data.virtual_base_resources_general_data or {}
 
 	local forces = game.forces
 	if forces.void == nil then
@@ -1194,14 +1194,15 @@ remote.add_interface("EasyAPI", {
 	set_virtual_base_resource_by_force_index = function(force_index, name, amount)
 		virtual_base_resources[force_index][name] = amount
 	end,
-	get_virtual_base_resources_rich_text = function()
-		return virtual_base_resources_rich_text
+	get_virtual_base_resources_general_data = function()
+		return virtual_base_resources_general_data
 	end,
-	get_virtual_base_resource_rich_text = function(name)
-		return virtual_base_resources_rich_text[name]
+	get_virtual_base_resource_general_data = function(name)
+		return virtual_base_resources_general_data[name]
 	end,
-	set_virtual_base_resource_rich_text = function(name, text)
-		virtual_base_resources_rich_text[name] = text
+	set_virtual_base_resource_general_data = function(name, key, value)
+		virtual_base_resources_general_data[name] = virtual_base_resources_general_data[name] or {}
+		virtual_base_resources_general_data[name][key] = value
 	end,
 	get_players_money = function()
 		return online_players_money, offline_players_money
