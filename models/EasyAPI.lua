@@ -1071,9 +1071,17 @@ M.on_configuration_changed = function(event)
 			end
 		end
 	end
-	if version < 0.7 then
+
+	if mod_data.players_money then
 		for player_index, money in pairs(mod_data.players_money) do
-			mod_data.online_players_money[player_index] = money
+			local player = game.get_player(player_index)
+			if player and player.valid then
+				if player.connected then
+					online_players_money[player_index] = online_players_money[player_index] or money
+				else
+					offline_players_money[player_index] = offline_players_money[player_index] or money
+				end
+			end
 		end
 		mod_data.players_money = nil
 	end
