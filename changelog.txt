@@ -1,4 +1,10 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.10.5
+Date: 2023-04-26
+  Scripting:
+    - Added support of conversions for new coins
+    - Changed data.lua to improve mod compatibility
+---------------------------------------------------------------------------------------------------
 Version: 0.10.4
 Date: 2023-04-26
   Scripting:

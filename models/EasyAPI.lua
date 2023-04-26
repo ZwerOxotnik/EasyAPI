@@ -180,19 +180,35 @@ end
 ---@param data online_players_money|forces_money
 ---@param index integer
 local function convert_money(player, data, index)
-	local count = player.get_item_count("coin")
-	if count > 0 then
-		player.remove_item{name = "coin", count = count}
+	local count
+	local get_item_count = function(item_name)
+
+		local _count = player.get_item_count(item_name)
+		if _count > 0 then
+			player.remove_item{name = item_name, count = _count}
+		end
+		return _count
 	end
+	count = get_item_count("coin") + get_item_count("coinX50") * 50 + get_item_count("coinX2500") * 2500
+
 	local entity = player.selected
 	if entity and entity.valid and entity.force == player.force and entity.operable then
 		if get_distance(player.position, entity.position) <= 10 then
 			local count_in_entity = entity.get_item_count("coin")
 			if count_in_entity > 0 then
-				count = entity.remove_item({name = "coin", count = count_in_entity}) + count
+				count = count + entity.remove_item({name = "coin", count = count_in_entity})
+			end
+			count_in_entity = entity.get_item_count("coinX50")
+			if count_in_entity > 0 then
+				count = count + entity.remove_item({name = "coinX50", count = count_in_entity}) * 50
+			end
+			count_in_entity = entity.get_item_count("coinX2500")
+			if count_in_entity > 0 then
+				count = count + entity.remove_item({name = "coinX2500", count = count_in_entity}) * 50
 			end
 		end
 	end
+
 	if count > 0 then
 		data[index] = data[index] + count
 		player.print("Added: " .. count)
@@ -206,7 +222,6 @@ end
 ---@param index integer
 ---@param amount integer
 local function get_money(player, data, index, amount)
-
 	local current_balance = data[index]
 	if amount > current_balance then
 		amount = current_balance
