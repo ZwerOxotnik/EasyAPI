@@ -91,10 +91,15 @@ Alternatively, join the [Discord group][Discord] and send a message there.
 
 ~~Please read the [contributing file](/CONTRIBUTING.md) for other details on how to contribute.~~
 
+Notice
+------
+
+This project contains [images](/graphics/) from ["Factorio"](factorio.com), please read https://factorio.com/terms-of-service
+
 License
 -------
 
-Copyright (c) 2021-2022 ZwerOxotnik \<zweroxotnik@gmail.com\>
+Copyright (c) 2021-2023 ZwerOxotnik \<zweroxotnik@gmail.com\>
 
 Use of the source code included here is governed by the Apache License, Version 2.0. See the [LICENSE](/LICENSE) file for details.
 
