@@ -1,4 +1,10 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.10.3
+Date: 2023-04-26
+  Scripting:
+    - Added deposit_virtual_base_resource(force_index, name, amount) in the remote interface
+    - Added stuff for general_forces_data and general_players_datain the remote interface
+---------------------------------------------------------------------------------------------------
 Version: 0.10.2
 Date: 2023-04-24
   Bugfixes:

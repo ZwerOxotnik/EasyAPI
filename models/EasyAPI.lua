@@ -20,6 +20,14 @@ local virtual_base_resources
 ---@type table<string, table<string, any>>
 local virtual_base_resources_general_data
 
+---@class general_forces_data
+---@type table<integer, table>
+local general_forces_data
+
+---@class general_players_data
+---@type table<integer, table>
+local general_players_data
+
 ---@class teams_base
 ---@field surface LuaSurface
 ---@field position table
@@ -59,9 +67,6 @@ local start_player_money = settings.global["EAPI_start-player-money"].value
 local start_force_money = settings.global["EAPI_start-force-money"].value
 
 ---@type string
-local who_decides_diplomacy = settings.global["EAPI_who-decides-diplomacy"].value
-
----@type string
 local default_permission_group = settings.global["EAPI_default-permission-group"].value
 
 ---@type string
@@ -76,7 +81,6 @@ local allow_create_team = settings.global["EAPI_allow_create_team"].value
 local custom_events = require("events")
 local raise_event = script.raise_event
 local constant_forces = {neutral = true, player = true, enemy = true}
-local MAX_TEAM_NAME_LENGTH = 32
 local print_to_rcon = rcon.print
 local tremove = table.remove
 local tconcat = table.concat
@@ -149,6 +153,7 @@ local function reset_balances()
 	end
 end
 
+-- Perhaps, it should be changed to LuaPlayer
 local function reset_player_balance(player_index)
 	if game.get_player(player_index).connected then
 		online_players_money[player_index] = start_player_money
@@ -224,6 +229,7 @@ local function on_player_created(event)
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
 
+	general_players_data[player_index] = {}
 	online_players_money[player_index] = start_player_money
 
 	if player.admin then
@@ -324,7 +330,6 @@ local function on_game_created_from_scenario()
 end
 
 local mod_settings = {
-	["EAPI_who-decides-diplomacy"] = function(value) who_decides_diplomacy = value end,
 	["EAPI_default-permission-group"] = function(value) default_permission_group = value end, -- TODO: check the permission group
 	["EAPI_start-player-money"] = function(value) start_player_money = value end,
 	["EAPI_start-force-money"] = function(value) start_force_money = value end,
@@ -355,6 +360,7 @@ local function on_force_created(event)
 	if not (force and force.valid) then return end
 
 	local force_index = force.index
+	general_forces_data[force_index] = {}
 	forces_money[force_index] = start_force_money
 	virtual_base_resources[force_index] = {}
 end
@@ -507,11 +513,11 @@ local function create_new_team_command(cmd)
 		return
 	end
 
-	if #cmd.parameter > (MAX_TEAM_NAME_LENGTH + 2) then
+	local team_name = trim(cmd.parameter)
+	if #cmd.parameter > 32 then -- 32 is max team name
 		player.print({"too-long-team-name"}, {1, 0, 0})
 		return
 	end
-	local team_name = trim(cmd.parameter)
 
 	local new_team = team_util.create_team(team_name, player)
 	if new_team == nil then return end
@@ -975,7 +981,7 @@ end
 local function link_data()
 	mod_data = global.EasyAPI
 	teams = mod_data.teams
-	online_players_money = mod_data.online_players_money
+	online_players_money  = mod_data.online_players_money
 	offline_players_money = mod_data.offline_players_money
 	teams_base = mod_data.teams_base
 	forces_money = mod_data.forces_money
@@ -984,6 +990,8 @@ local function link_data()
 	server_list = global.server_list
 	virtual_base_resources = mod_data.virtual_base_resources
 	virtual_base_resources_general_data = mod_data.virtual_base_resources_general_data
+	general_forces_data  = mod_data.general_forces_data
+	general_players_data = mod_data.general_players_data
 end
 
 local function update_global_data()
@@ -991,12 +999,15 @@ local function update_global_data()
 	global.EasyAPI = global.EasyAPI or {}
 	mod_data = global.EasyAPI
 	mod_data.teams = mod_data.teams or {}
-	mod_data.online_players_money = mod_data.online_players_money or {}
+	mod_data.online_players_money  = mod_data.online_players_money  or {}
 	mod_data.offline_players_money = mod_data.offline_players_money or {}
 	mod_data.forces_money = mod_data.forces_money or {}
 	mod_data.teams_base = mod_data.teams_base or {}
 	mod_data.virtual_base_resources = mod_data.virtual_base_resources or {}
 	mod_data.virtual_base_resources_general_data = mod_data.virtual_base_resources_general_data or {}
+	mod_data.general_forces_data  = mod_data.general_forces_data  or {}
+	mod_data.general_players_data = mod_data.general_players_data or {}
+
 
 	local forces = game.forces
 	if forces.void == nil then
@@ -1019,20 +1030,24 @@ local function update_global_data()
 	end
 
 	for _, force in pairs(game.forces) do
-		local force_index = force.index
 		if force.valid then
+			local force_index = force.index
+			general_forces_data = general_forces_data or {}
 			virtual_base_resources[force_index] = virtual_base_resources[force_index] or {}
 		end
 	end
 
 	for player_index, player in pairs(game.players) do
-		if player.connected then
-			if online_players_money[player_index] == nil then
-				online_players_money[player_index] = start_player_money
-			end
-		else
-			if offline_players_money[player_index] == nil then
-				offline_players_money[player_index] = start_player_money
+		if player.valid then
+			general_players_data = general_players_data or {}
+			if player.connected then
+				if online_players_money[player_index] == nil then
+					online_players_money[player_index] = start_player_money
+				end
+			else
+				if offline_players_money[player_index] == nil then
+					offline_players_money[player_index] = start_player_money
+				end
 			end
 		end
 	end
@@ -1183,6 +1198,24 @@ remote.add_interface("EasyAPI", {
 	reset_offline_player_balance = reset_offline_player_balance,
 	reset_online_player_balance = reset_online_player_balance,
 	reset_force_balance = reset_force_balance,
+	get_general_forces_data = function()
+		return general_forces_data
+	end,
+	get_general_force_data = function(force_index)
+		return general_forces_data[force_index]
+	end,
+	set_general_force_data = function(force_index, key, value)
+		general_forces_data[force_index][key] = value
+	end,
+	get_general_players_data = function()
+		return general_players_data
+	end,
+	get_general_player_data = function(force_index)
+		return general_players_data[force_index]
+	end,
+	set_general_player_data = function(force_index, key, value)
+		general_players_data[force_index][key] = value
+	end,
 	get_all_virtual_base_resources = function()
 		return virtual_base_resources
 	end,
@@ -1195,6 +1228,10 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_virtual_base_resource_by_force_index = function(force_index, name)
 		return virtual_base_resources[force_index][name]
+	end,
+	deposit_virtual_base_resource = function(force_index, name, amount)
+		local force_resources = virtual_base_resources[force_index]
+		force_resources[name] = force_resources[name] + amount
 	end,
 	set_virtual_base_resources_by_force_index = function(force_index, data)
 		virtual_base_resources[force_index] = data
