@@ -1,4 +1,12 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.10.6
+Date: 2023-04-27
+  Scripting:
+    - Added EasyAPI.create_coin_conversion_recipe in data.lua
+    - Changed EasyAPI.add_new_coin in data.lua
+  Changes:
+    - Supports coin conversion as recipes
+---------------------------------------------------------------------------------------------------
 Version: 0.10.5
 Date: 2023-04-26
   Scripting:
