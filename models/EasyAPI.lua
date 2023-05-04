@@ -1,4 +1,5 @@
 local team_util = require("models/team_util")
+permissions_util = require("models/permissions_util")
 
 
 ---@class EasyAPI : module
@@ -22,10 +23,12 @@ local virtual_base_resources
 local virtual_base_resources_general_data
 
 ---@class general_forces_data
+---@field permission_group LuaPermissionGroup?
 ---@type table<integer, table>
 local general_forces_data
 
 ---@class general_players_data
+---@field permission_group LuaPermissionGroup?
 ---@type table<integer, table>
 local general_players_data
 
@@ -96,8 +99,8 @@ local function trim(s)
 end
 
 -- Sends message to a player or server
----@param	message string
----@param	caller LuaPlayer
+---@param message string
+---@param caller LuaPlayer
 local function print_to_caller(message, caller)
 	if caller then
 		if caller.valid then
@@ -108,9 +111,24 @@ local function print_to_caller(message, caller)
 	end
 end
 
-local function clear_player_data(event)
-	online_players_money[event.player_index] = nil
-	offline_players_money[event.player_index] = nil
+M.assign_default_permission_group = function(player)
+	if settings.global["EAPI_permissions_per_player"].value then
+		local general_player_data = general_players_data[player.index]
+		general_player_data.permission_group.add_player(player)
+	elseif settings.global["EAPI_permissions_per_force"].value then
+		general_forces_data[player.force.index].permission_group.add_player(player)
+	elseif settings.global["EAPI_add_admins_to_admin_permission_group"].value then
+		if player.admin then
+			mod_data.admin_group.add_player(player)
+		end
+	end
+end
+
+M.on_player_removed = function(event)
+	local player_index= event.player_index
+	online_players_money[player_index] = nil
+	offline_players_money[player_index] = nil
+	general_players_data[player_index] = nil
 end
 
 local function get_distance(start, stop)
@@ -142,7 +160,7 @@ local function create_void_surface()
 	return surface
 end
 
-local function reset_balances()
+M.reset_balances = function()
 	for player_index in pairs(online_players_money) do
 		online_players_money[player_index] = start_player_money
 	end
@@ -152,28 +170,6 @@ local function reset_balances()
 	for force_index in pairs(forces_money) do
 		forces_money[force_index] = start_force_money
 	end
-end
-
--- Perhaps, it should be changed to LuaPlayer
-local function reset_player_balance(player_index)
-	if game.get_player(player_index).connected then
-		online_players_money[player_index] = start_player_money
-	else
-		offline_players_money[player_index] = start_player_money
-	end
-end
-
-local function reset_offline_player_balance(player_index)
-	offline_players_money[player_index] = start_player_money
-end
-
-local function reset_online_player_balance(player_index)
-	online_players_money[player_index] = start_player_money
-end
-
----@param force LuaForce
-local function reset_force_balance(force)
-	forces_money[force.index] = start_force_money
 end
 
 ---@param player LuaPlayer
@@ -240,7 +236,7 @@ end
 
 --#region Functions of events
 
-local function on_player_created(event)
+M.on_player_created = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
@@ -248,15 +244,14 @@ local function on_player_created(event)
 	general_players_data[player_index] = {}
 	online_players_money[player_index] = start_player_money
 
-	if player.admin then
-		local group = game.permissions.get_group("Admin")
-		if group then
-			group.add_player(player)
-		end
+	if settings.global["EAPI_permissions_per_player"].value then
+		local group = game.permissions.create_group(player.name)
+		general_players_data[player_index].permission_group = group
 	end
+	M.assign_default_permission_group(player)
 end
 
-local function on_player_joined_game(event)
+M.on_player_joined_game = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
@@ -273,7 +268,7 @@ local function on_player_joined_game(event)
 	end
 end
 
-local function on_player_left_game(event)
+M.on_player_left_game = function(event)
 	local player_index = event.player_index
 	local money = online_players_money[player_index]
 	if money then
@@ -282,10 +277,16 @@ local function on_player_left_game(event)
 	end
 end
 
-local function on_player_changed_force(event)
+M.on_player_changed_force = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
+
+	if settings.global["EAPI_permissions_per_force"].value and
+		settings.global["EAPI_permissions_per_player"].value == false
+	then
+		general_forces_data[player.force.index].permission_group.add_player(player)
+	end
 
 	local prev_force = event.force
 	local target_force = player.force
@@ -308,28 +309,29 @@ local function on_player_changed_force(event)
 	end
 end
 
-local function on_player_demoted(event)
+M.on_player_demoted = function(event)
 	local player = game.get_player(event.player_index)
 	if not (player and player.valid) then return end
 
-	if player.permission_group.name == "Admin" then
-		local group = game.permissions.get_group(default_permission_group)
-		if group then
-			group.add_player(player)
-		end
+	if mod_data.admin_group == player.permission_group then
+		M.assign_default_permission_group(player)
 	end
 end
 
-local function on_player_promoted(event)
+M.on_player_promoted = function(event)
 	local player = game.get_player(event.player_index)
 	if not (player and player.valid) then return end
 
-	local admin_group = game.permissions.get_group("Admin")
-	if admin_group == nil then return end
-	admin_group.add_player(player)
+	if settings.global["EAPI_permissions_per_player"].value or
+		settings.global["EAPI_permissions_per_force"].value or
+		settings.global["EAPI_add_admins_to_admin_permission_group"].value == false then
+		return
+	end
+
+	mod_data.admin_group.add_player(player)
 end
 
-local function on_pre_player_removed(event)
+M.on_pre_player_removed = function(event)
 	local player_index = event.player_index
 	local force_index = game.get_player(player_index).force.index
 	local player_money = online_players_money[player_index]
@@ -339,7 +341,7 @@ local function on_pre_player_removed(event)
 	end
 end
 
-local function on_game_created_from_scenario()
+M.on_game_created_from_scenario = function()
 	raise_event(custom_events.on_new_team, {force = game.forces.player})
 	raise_event(custom_events.on_new_team, {force = game.forces.enemy})
 	raise_event(custom_events.on_new_team, {force = game.forces.neutral})
@@ -350,28 +352,101 @@ local mod_settings = {
 	["EAPI_start-player-money"] = function(value) start_player_money = value end,
 	["EAPI_start-force-money"] = function(value) start_force_money = value end,
 	["EAPI_default-force-name"] = function(value) default_force_name = value end,
-	["EAPI_allow_create_team"] = function(value) allow_create_team = value end
+	["EAPI_allow_create_team"] = function(value) allow_create_team = value end,
+	["EAPI_permissions_per_force"]  = function(value)
+		local is_permissions_per_force = false
+		if settings.global["EAPI_permissions_per_force"].value then
+			is_permissions_per_force = true
+		end
+		local is_permissions_per_player = false
+		if settings.global["EAPI_permissions_per_player"].value then
+			is_permissions_per_player = true
+		end
+
+		for _, force in pairs(game.forces) do
+			if force.valid then
+				local force_index = force.index
+				local general_force_data = general_forces_data[force_index]
+				general_forces_data[force_index] = general_forces_data[force_index] or {}
+				if is_permissions_per_force then
+					if general_force_data.permission_group == nil then
+						local force_group = game.permissions.create_group(force.name)
+						general_force_data.permission_group = force_group
+						if is_permissions_per_player == false then
+							for _, player in pairs(force.players) do
+								if player.valid then
+									force_group.add_player(player)
+								end
+							end
+						end
+					end
+				elseif general_force_data.permission_group then
+					local force_permission_group = general_force_data.permission_group
+					for _, player in pairs(force.players) do
+						if player.valid and player.permission_group == force_permission_group then
+							M.assign_default_permission_group(player)
+						end
+					end
+				end
+			end
+		end
+	end,
+	["EAPI_permissions_per_player"] = function(value)
+		for _, player in pairs(game.players) do
+			if player.valid then
+				local general_player_data = general_players_data[player.index]
+				local permission_group = general_player_data.permission_group
+				if permission_group == nil then
+					permission_group = game.permissions.create_group(player.name)
+					general_player_data.permission_group = permission_group
+				end
+				if value then
+					permission_group.add_player(player)
+				else
+					M.assign_default_permission_group(player)
+				end
+			end
+		end
+	end,
+	["EAPI_add_admins_to_admin_permission_group"] = function()
+		for _, player in pairs(game.players) do
+			if player.valid and player.admin then
+				if mod_data.admin_group == player.permission_group then
+					M.assign_default_permission_group(player)
+				else
+					if settings.global["EAPI_permissions_per_player"].value or
+						settings.global["EAPI_permissions_per_force"].value or
+						settings.global["EAPI_add_admins_to_admin_permission_group"].value == false then
+						return
+					end
+
+					mod_data.admin_group.add_player(player)
+				end
+			end
+		end
+	end,
 }
-local function on_runtime_mod_setting_changed(event)
+M.on_runtime_mod_setting_changed = function(event)
 	local setting_name = event.setting
 	local f = mod_settings[setting_name]
 	if f then f(settings.global[setting_name].value) end
 end
 
-local function on_forces_merging(event)
+M.on_forces_merging = function(event)
 	local force = event.source
 	if teams[force.index] then
 		raise_event(custom_events.on_pre_deleted_team, {force = force})
 	end
 end
 
-local function on_forces_merged(event)
+M.on_forces_merged = function(event)
 	local source_index = event.source_index
 	teams[source_index] = nil
 	virtual_base_resources[source_index] = nil
+	general_forces_data[source_index] = nil
 end
 
-local function on_force_created(event)
+M.on_force_created = function(event)
 	local force = event.force
 	if not (force and force.valid) then return end
 
@@ -379,15 +454,28 @@ local function on_force_created(event)
 	general_forces_data[force_index] = {}
 	forces_money[force_index] = start_force_money
 	virtual_base_resources[force_index] = {}
+	if settings.global["EAPI_permissions_per_force"].value == false then
+		return
+	end
+
+	local force_group = game.permissions.create_group(force.name)
+	general_forces_data[force_index].permission_group = force_group
+	if settings.global["EAPI_permissions_per_player"].value == false then
+		for _, player in pairs(force.players) do
+			if player.valid then
+				force_group.add_player(player)
+			end
+		end
+	end
 end
 
-local function on_pre_deleted_team(event)
+M.on_pre_deleted_team = function(event)
 	local index = event.force.index
 	teams_base[index] = nil
 	forces_money[index] = nil
 end
 
-local function on_player_accepted_invite(event)
+M.on_player_accepted_invite = function(event)
 	local player = game.get_player(event.player_index)
 	if not (player and player.valid) then return end
 
@@ -399,7 +487,7 @@ end
 
 --#region Commands
 
-local function team_list_command(cmd)
+M.team_list_command = function(cmd)
 	if cmd.player_index == 0 then
 		for name, force in pairs(game.forces) do
 			print("name: " .. name .. ", index: " .. force.index)
@@ -456,7 +544,7 @@ local function team_list_command(cmd)
 	end
 end
 
-local function show_team_command(cmd)
+M.show_team_command = function(cmd)
 	local caller = game.get_player(cmd.player_index)
 	if cmd.parameter == nil then
 		if cmd.player_index == 0 then return end
@@ -500,7 +588,7 @@ local function show_team_command(cmd)
 	print_to_caller({"", {"gui-browse-games.games-headers-players"}, {"colon"}, get_players(target_force)}, caller)
 end
 
-local function kick_teammate_command(cmd)
+M.kick_teammate_command = function(cmd)
 	local caller = game.get_player(cmd.player_index)
 	local target_player = game.get_player(cmd.parameter)
 	local force = game.forces[default_force_name] or game.forces.player
@@ -521,7 +609,7 @@ local function kick_teammate_command(cmd)
 	end
 end
 
-local function create_new_team_command(cmd)
+M.create_new_team_command = function(cmd)
 	local player = game.get_player(cmd.player_index)
 
 	if not allow_create_team then
@@ -557,7 +645,7 @@ local function create_new_team_command(cmd)
 	player.print({"EasyAPI.new_team"})
 end
 
-local function remove_team_command(cmd)
+M.remove_team_command = function(cmd)
 	local admin = game.get_player(cmd.player_index)
 	local target_force = game.forces[cmd.parameter]
 	if #target_force.players ~= 0 then
@@ -572,7 +660,7 @@ local function remove_team_command(cmd)
 end
 
 -- TODO: improve
-local function friendly_fire_command(cmd)
+M.friendly_fire_command = function(cmd)
 	local friendly_fire_state
 
 	-- TODO: add localization here
@@ -593,7 +681,7 @@ local function friendly_fire_command(cmd)
 	end
 end
 
-local function set_money_command(cmd)
+M.set_money_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local caller = game.get_player(cmd.player_index)
@@ -619,7 +707,7 @@ local function set_money_command(cmd)
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
-local function set_team_money_command(cmd)
+M.set_team_money_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local caller = game.get_player(cmd.player_index)
@@ -645,7 +733,7 @@ local function set_team_money_command(cmd)
 	caller.print(target.name .. "'s balance: " .. amount)
 end
 
-local function deposit_money_command(cmd)
+M.deposit_money_command = function(cmd)
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	if online_players_money[player_index] == nil then
@@ -680,7 +768,7 @@ local function deposit_money_command(cmd)
 	end
 end
 
-local function withdraw_money_command(cmd)
+M.withdraw_money_command = function(cmd)
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	if online_players_money[player_index] == nil then
@@ -718,7 +806,7 @@ local function withdraw_money_command(cmd)
 	end
 end
 
-local function deposit_team_money_command(cmd)
+M.deposit_team_money_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player = game.get_player(cmd.player_index)
@@ -744,7 +832,7 @@ local function deposit_team_money_command(cmd)
 	player.print(target.name .. "'s balance: " .. forces_money[target.index])
 end
 
-local function destroy_team_money_command(cmd)
+M.destroy_team_money_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 	local player = game.get_player(cmd.player_index)
@@ -773,7 +861,7 @@ local function destroy_team_money_command(cmd)
 end
 
 --TODO: improve
-local function ring_command(cmd)
+M.ring_command = function(cmd)
 	local caller = game.get_player(cmd.player_index)
 	local target_player = game.get_player(cmd.parameter)
 	if not (target_player and target_player.valid) then return end
@@ -784,7 +872,7 @@ local function ring_command(cmd)
 	target_player.print{"EasyAPI.ring-target", caller.name}
 end
 
-local function pay_command(cmd)
+M.pay_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
@@ -826,7 +914,7 @@ local function pay_command(cmd)
 	end
 end
 
-local function balance_command(cmd)
+M.balance_command = function(cmd)
 	local player = game.get_player(cmd.player_index)
 	local parameter = cmd.parameter
 	local target
@@ -855,7 +943,7 @@ local function balance_command(cmd)
 	end
 end
 
-local function team_balance_command(cmd)
+M.team_balance_command = function(cmd)
 	local caller = game.get_player(cmd.player_index)
 	local parameter = cmd.parameter
 	local target
@@ -882,7 +970,7 @@ local function team_balance_command(cmd)
 	end
 end
 
-local function transfer_team_money_command(cmd)
+M.transfer_team_money_command = function(cmd)
 	local args = {}
 	for arg in string.gmatch(cmd.parameter, "%g+") do args[#args+1] = arg end
 
@@ -938,7 +1026,7 @@ local function transfer_team_money_command(cmd)
 	end
 end
 
-local function convert_money_command(cmd)
+M.convert_money_command = function(cmd)
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	local force_index = player.force.index
@@ -952,7 +1040,7 @@ local function convert_money_command(cmd)
 	end
 end
 
-local function get_money_command(cmd)
+M.get_money_command = function(cmd)
 	local player_index = cmd.player_index
 	local player = game.get_player(player_index)
 	local player_force = player.force
@@ -1034,10 +1122,7 @@ local function update_global_data()
 	link_data()
 
 	local permissions = game.permissions
-	local group = permissions.get_group("Admin")
-	if group == nil then
-		permissions.create_group("Admin")
-	end
+	mod_data.admin_group = permissions.get_group("Admin") or permissions.create_group("Admin")
 
 	if #teams == 0 then
 		local player_force = forces.player
@@ -1045,17 +1130,51 @@ local function update_global_data()
 		forces_money[player_force.index] = start_force_money
 	end
 
+	local is_permissions_per_force = false
+	if settings.global["EAPI_permissions_per_force"].value then
+		is_permissions_per_force = true
+	end
+	local is_permissions_per_player = false
+	if settings.global["EAPI_permissions_per_player"].value then
+		is_permissions_per_player = true
+	end
+
 	for _, force in pairs(game.forces) do
 		if force.valid then
 			local force_index = force.index
-			general_forces_data = general_forces_data or {}
 			virtual_base_resources[force_index] = virtual_base_resources[force_index] or {}
+			general_forces_data[force_index] = general_forces_data[force_index] or {}
+			local general_force_data = general_forces_data[force_index]
+			if is_permissions_per_force then
+				if general_force_data.permission_group == nil then
+					local force_group = game.permissions.create_group(force.name)
+					general_force_data.permission_group = force_group
+					if is_permissions_per_player == false then
+						for _, player in pairs(force.players) do
+							if player.valid then
+								force_group.add_player(player)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- TODO: add and use events
+	for player_index, data in pairs(general_players_data) do
+		local player = game.get_player(player_index)
+		if not (player and player.valid) then
+			local permission_group = data.permission_group
+			if permission_group then
+				permission_group.destroy()
+			end
 		end
 	end
 
 	for player_index, player in pairs(game.players) do
 		if player.valid then
-			general_players_data = general_players_data or {}
+			general_players_data[player_index] = general_players_data[player_index] or {}
 			if player.connected then
 				if online_players_money[player_index] == nil then
 					online_players_money[player_index] = start_player_money
@@ -1134,6 +1253,7 @@ remote.add_interface("EasyAPI", {
 	get_data = function()
 		return mod_data
 	end,
+	assign_default_permission_group = M.assign_default_permission_group,
 	add_team = function(force)
 		teams[force.index] = force.name
 		raise_event(custom_events.on_new_team, {force = force})
@@ -1209,11 +1329,24 @@ remote.add_interface("EasyAPI", {
 	-- set_locked_teams = function(bool)
 	-- 	mod_data.locked_teams = bool
 	-- end,
-	reset_balances = reset_balances,
-	reset_player_balance = reset_player_balance,
-	reset_offline_player_balance = reset_offline_player_balance,
-	reset_online_player_balance = reset_online_player_balance,
-	reset_force_balance = reset_force_balance,
+	reset_balances = M.reset_balances,
+	-- Perhaps, it should be changed to LuaPlayer
+	reset_player_balance = function(player_index)
+		if game.get_player(player_index).connected then
+			online_players_money[player_index] = start_player_money
+		else
+			offline_players_money[player_index] = start_player_money
+		end
+	end,
+	reset_offline_player_balance = function(player_index)
+		offline_players_money[player_index] = start_player_money
+	end,
+	reset_online_player_balance = function(player_index)
+		online_players_money[player_index] = start_player_money
+	end,
+	reset_force_balance = function(force)
+		forces_money[force.index] = start_force_money
+	end,
 	get_general_forces_data = function()
 		return general_forces_data
 	end,
@@ -1448,44 +1581,44 @@ remote.add_interface("BridgeAPI", {
 
 
 M.events = {
-	[defines.events.on_game_created_from_scenario] = on_game_created_from_scenario,
-	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
-	[defines.events.on_player_created] = on_player_created,
-	[defines.events.on_player_joined_game] = on_player_joined_game,
-	[defines.events.on_player_left_game] = on_player_left_game,
-	[defines.events.on_player_changed_force] = on_player_changed_force,
-	[defines.events.on_player_demoted] = on_player_demoted,
-	[defines.events.on_player_promoted] = on_player_promoted,
-	[defines.events.on_pre_player_removed] = on_pre_player_removed,
-	[defines.events.on_player_removed] = clear_player_data,
-	[defines.events.on_forces_merging] = on_forces_merging,
-	[defines.events.on_forces_merged] = on_forces_merged,
-	[defines.events.on_force_created] = on_force_created,
-	[custom_events.on_pre_deleted_team] = on_pre_deleted_team,
-	[custom_events.on_round_start] = reset_balances,
-	[custom_events.on_player_accepted_invite] = on_player_accepted_invite
+	[defines.events.on_game_created_from_scenario] = M.on_game_created_from_scenario,
+	[defines.events.on_runtime_mod_setting_changed] = M.on_runtime_mod_setting_changed,
+	[defines.events.on_player_created] = M.on_player_created,
+	[defines.events.on_player_joined_game] = M.on_player_joined_game,
+	[defines.events.on_player_left_game] = M.on_player_left_game,
+	[defines.events.on_player_changed_force] = M.on_player_changed_force,
+	[defines.events.on_player_demoted] = M.on_player_demoted,
+	[defines.events.on_player_promoted] = M.on_player_promoted,
+	[defines.events.on_pre_player_removed] = M.on_pre_player_removed,
+	[defines.events.on_player_removed] = M.on_player_removed,
+	[defines.events.on_forces_merging] = M.on_forces_merging,
+	[defines.events.on_forces_merged] = M.on_forces_merged,
+	[defines.events.on_force_created] = M.on_force_created,
+	[custom_events.on_pre_deleted_team] = M.on_pre_deleted_team,
+	[custom_events.on_round_start] = M.reset_balances,
+	[custom_events.on_player_accepted_invite] = M.on_player_accepted_invite
 }
 
 M.commands = {
-	create_team = create_new_team_command,
-	remove_team = remove_team_command,
-	team_list = team_list_command,
-	show_team = show_team_command,
-	kick_teammate = kick_teammate_command,
-	friendly_fire = friendly_fire_command,
-	set_money = set_money_command,
-	set_team_money = set_team_money_command,
-	deposit_money = deposit_money_command,
-	withdraw_money = withdraw_money_command,
-	deposit_team_money = deposit_team_money_command,
-	destroy_team_money = destroy_team_money_command,
-	transfer_team_money = transfer_team_money_command,
-	convert_money = convert_money_command,
-	get_money = get_money_command,
-	pay = pay_command,
-	ring = ring_command,
-	balance = balance_command,
-	team_balance = team_balance_command,
+	create_team = M.create_new_team_command,
+	remove_team = M.remove_team_command,
+	team_list = M.team_list_command,
+	show_team = M.show_team_command,
+	kick_teammate = M.kick_teammate_command,
+	friendly_fire = M.friendly_fire_command,
+	set_money = M.set_money_command,
+	set_team_money = M.set_team_money_command,
+	deposit_money = M.deposit_money_command,
+	withdraw_money = M.withdraw_money_command,
+	deposit_team_money = M.deposit_team_money_command,
+	destroy_team_money = M.destroy_team_money_command,
+	transfer_team_money = M.transfer_team_money_command,
+	convert_money = M.convert_money_command,
+	get_money = M.get_money_command,
+	pay = M.pay_command,
+	ring = M.ring_command,
+	balance = M.balance_command,
+	team_balance = M.team_balance_command,
 	bring = function(cmd)
 		local player = game.get_player(cmd.player_index)
 		local target = game.get_player(cmd.parameter)

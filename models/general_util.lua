@@ -6,6 +6,7 @@
 ---@class general_util : module
 local M = {}
 
+
 --#region constants
 local call = remote.call
 --#endregion

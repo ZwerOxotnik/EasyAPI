@@ -1,4 +1,16 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.11.0
+Date: 2023-05-04
+  Scripting:
+    - Added assign_default_permission_group(player) to the remote interface
+    - Added new settings to set permissions for players in other ways
+    - WARNING: permissions by itself isn't fully ready and perhaps can be unstable
+  Changes:
+    - Refactored some stuff
+  Bugfixes:
+    - Permissions should be more reliable
+    - Improved data stability for general_forces_data and general_players_data
+---------------------------------------------------------------------------------------------------
 Version: 0.10.6
 Date: 2023-04-27
   Scripting:
