@@ -241,6 +241,7 @@ M.on_player_created = function(event)
 	local player = game.get_player(player_index)
 	if not (player and player.valid) then return end
 
+	mod_data.persistent_players_data[player.name] = mod_data.persistent_players_data[player.name] or {}
 	general_players_data[player_index] = {}
 	online_players_money[player_index] = start_player_money
 
@@ -333,11 +334,19 @@ end
 
 M.on_pre_player_removed = function(event)
 	local player_index = event.player_index
-	local force_index = game.get_player(player_index).force.index
+	local player = game.get_player(player_index)
+	local force_index = player.force.index
 	local player_money = online_players_money[player_index]
 	-- send player money to force
 	if forces_money[force_index] and player_money then
 		forces_money[force_index] = forces_money[force_index] + player_money
+	end
+
+	local persistent_player_data = mod_data.persistent_players_data[player.name]
+	if persistent_player_data then
+		if next(persistent_player_data) == nil then
+			mod_data.persistent_players_data[player.name] = nil
+		end
 	end
 end
 
@@ -1111,6 +1120,8 @@ local function update_global_data()
 	mod_data.virtual_base_resources_general_data = mod_data.virtual_base_resources_general_data or {}
 	mod_data.general_forces_data  = mod_data.general_forces_data  or {}
 	mod_data.general_players_data = mod_data.general_players_data or {}
+	---@type table<string, table>
+	mod_data.persistent_players_data = mod_data.persistent_players_data or {}
 
 
 	local forces = game.forces
@@ -1174,6 +1185,7 @@ local function update_global_data()
 
 	for player_index, player in pairs(game.players) do
 		if player.valid then
+			mod_data.persistent_players_data[player.name] = mod_data.persistent_players_data[player.name] or {}
 			general_players_data[player_index] = general_players_data[player_index] or {}
 			if player.connected then
 				if online_players_money[player_index] == nil then
@@ -1364,6 +1376,15 @@ remote.add_interface("EasyAPI", {
 	end,
 	set_general_player_data = function(force_index, key, value)
 		general_players_data[force_index][key] = value
+	end,
+	get_persistent_players_data = function()
+		return mod_data.persistent_players_data
+	end,
+	get_persistent_player_data = function(nickname)
+		return mod_data.persistent_players_data[nickname]
+	end,
+	set_persistent_player_data = function(nickname, key, value)
+		mod_data.persistent_players_data[nickname][key] = value
 	end,
 	get_all_virtual_base_resources = function()
 		return virtual_base_resources
@@ -1753,6 +1774,20 @@ M.commands = {
 		end
 
 		target.show_on_map = true
+	end,
+	fix_bugs = function(cmd)
+		raise_event(custom_events.on_fix_bugs, {})
+		local player = game.get_player(cmd.player_index)
+		if not (player and player.valid) then
+			player.print("Mods tried to fix bugs")
+		end
+	end,
+	kill = function(cmd)
+		local player = game.get_player(cmd.player_index)
+		local character = player.character
+		if character then
+			character.die()
+		end
 	end,
 	hp = function(cmd)
 		local player = game.get_player(cmd.player_index)

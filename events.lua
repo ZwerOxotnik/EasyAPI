@@ -4,11 +4,11 @@
 ]]
 
 return {
-		-- Rounds
+	-- Rounds
 	on_round_start = script.generate_event_name(),
 	on_round_end = script.generate_event_name(),
 
-		-- Teams
+	-- Teams
 	on_team_lost = script.generate_event_name(), -- {force}
 	on_team_won = script.generate_event_name(), -- {force}
 	on_player_joined_team = script.generate_event_name(), -- {player_index, force, prev_force}
@@ -32,7 +32,7 @@ return {
 	--		kicker :: uint or nil: A player/server/script who kicked the player. (TODO: improve)
 	on_player_kicked_from_team = script.generate_event_name(),
 
-		-- Money
+	-- Money
 	on_transfered_player_money = script.generate_event_name(), -- {receiver_index = player.index, payer_index = player.index}
 	on_transfered_force_money = script.generate_event_name(), -- {receiver = force, payer = force}
 
@@ -77,6 +77,7 @@ return {
 	on_player_on_admin_surface = script.generate_event_name(), -- {player_index}
 	on_player_on_scenario_surface = script.generate_event_name(), -- {player_index}
 	on_player_on_lobby_surface = script.generate_event_name(), -- {player_index}
+	on_fix_bugs = script.generate_event_name(), -- empty table
 
 	-- Called when switched a mod
 	--	Contains:
