@@ -1777,10 +1777,37 @@ M.commands = {
 	end,
 	fix_bugs = function(cmd)
 		raise_event(custom_events.on_fix_bugs, {})
-		local player = game.get_player(cmd.player_index)
-		if not (player and player.valid) then
-			player.print("Mods tried to fix bugs")
+		local player, player_name
+		if cmd.player_index ~= 0 then
+			player = game.get_player(cmd.player_index)
+			if player and player.valid then
+				player_name = player.name
+			end
 		end
+
+		local message = string.format("Mods tried to fix bugs, request by \"%s\"", player_name or "server")
+		log(message)
+		if player and player.valid then
+			player.print(message)
+		end
+	end,
+	sync = function(cmd)
+		raise_event(custom_events.on_sync, {})
+		raise_event(custom_events.on_fix_bugs, {})
+		local player_index = cmd.player_index
+		local message
+		if player_index == 0 then
+			message = "Server forced to sync data"
+		else
+			local admin = game.get_player(cmd.player_index)
+			local admin_name
+			if admin and admin.valid then
+				admin_name = admin.name
+			end
+			message = string.format("Admin \"%s\" forced to sync data", admin_name or "?")
+		end
+		log(message)
+		game.print(message)
 	end,
 	kill = function(cmd)
 		local player = game.get_player(cmd.player_index)

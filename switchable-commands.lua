@@ -38,6 +38,7 @@ return {
 	team_balance = {name = "team-balance"},
 	uncloak  = {only_for_admin = true, default_value = false},
 	fix_bugs = {name = "fix-bugs", allow_for_server = true, only_for_admin = true, is_allowed_empty_args = true},
+	sync     = {allow_for_server = true, only_for_admin = true, is_allowed_empty_args = true},
 	cloak    = {only_for_admin = true, default_value = false},
 	balance  = {},
 	kill = {name = "killme", default_value = false},

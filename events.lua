@@ -78,6 +78,7 @@ return {
 	on_player_on_scenario_surface = script.generate_event_name(), -- {player_index}
 	on_player_on_lobby_surface = script.generate_event_name(), -- {player_index}
 	on_fix_bugs = script.generate_event_name(), -- empty table
+	on_sync = script.generate_event_name(), -- empty table
 
 	-- Called when switched a mod
 	--	Contains:
