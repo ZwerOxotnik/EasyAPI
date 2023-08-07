@@ -9,6 +9,7 @@ local runtime_settings = {
 		allowed_values = {"all_players", "team_leader"}
 	},
 	{type = "int-setting",    name = "EAPI_max_teams", default_value = 40, minimal_value = 0, maximal_value = 55},
+	{type = "int-setting",    name = "EAPI_start-evolution", default_value = 0, minimal_value = 0, maximal_value = 100},
 	{type = "int-setting",    name = "EAPI_start-player-money", default_value = 500},
 	{type = "int-setting",    name = "EAPI_start-force-money", default_value = 1000},
 	{type = "string-setting", name = "EAPI_default-permission-group", default_value = "Default"},

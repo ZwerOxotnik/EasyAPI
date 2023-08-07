@@ -351,6 +351,10 @@ M.on_pre_player_removed = function(event)
 end
 
 M.on_game_created_from_scenario = function()
+	if settings.global["EAPI_start-evolution"] then
+		game.forces.enemy.evolution_factor = settings.global["EAPI_start-evolution"].value
+	end
+
 	raise_event(custom_events.on_new_team, {force = game.forces.player})
 	raise_event(custom_events.on_new_team, {force = game.forces.enemy})
 	raise_event(custom_events.on_new_team, {force = game.forces.neutral})
