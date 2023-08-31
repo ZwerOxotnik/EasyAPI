@@ -1283,8 +1283,11 @@ remote.add_interface("EasyAPI", {
 	end,
 	---@param force LuaForce
 	remove_team_base = function(force)
-		raise_event(custom_events.on_pre_deleted_team_base, {force = force})
-		teams_base[force.index] = nil
+		local force_index = force.index
+		local team_base_data = teams_base[force_index]
+		if team_base_data == nil then return end
+		raise_event(custom_events.on_pre_deleted_team_base, {force = force, surface = team_base_data.surface, position = team_base_data.position})
+		teams_base[force_index] = nil
 	end,
 	---@param force_index number
 	---@return teams_base?

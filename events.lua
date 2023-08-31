@@ -15,7 +15,7 @@ return {
 	on_new_team = script.generate_event_name(), -- {force}
 	on_pre_deleted_team = script.generate_event_name(), -- {force}
 	on_new_team_base = script.generate_event_name(), -- {force, surface, position}
-	on_pre_deleted_team_base = script.generate_event_name(), -- {force}
+	on_pre_deleted_team_base = script.generate_event_name(), -- {force, surface, position}
 	on_player_invited_in_team = script.generate_event_name(), -- {inviter_index, target_index, force}
 	on_player_sent_join_request_in_team = script.generate_event_name(), -- {player_index, force}
 	on_player_accepted_invite = script.generate_event_name(), -- {player_index, force}
