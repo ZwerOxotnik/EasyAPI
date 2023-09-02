@@ -11,7 +11,7 @@ local M = {}
 local _mod_data
 
 ---@class teams
----@type table<number, string>
+---@type table<uint, string>
 local _teams
 
 ---@class virtual_base_resources
@@ -24,31 +24,31 @@ local _virtual_base_resources_general_data
 
 ---@class general_forces_data
 ---@field permission_group LuaPermissionGroup?
----@type table<integer, table>
+---@type table<uint, table>
 local _general_forces_data
 
 ---@class general_players_data
 ---@field permission_group LuaPermissionGroup?
----@type table<integer, table>
+---@type table<uint, table>
 local _general_players_data
 
 ---@class teams_base
 ---@field surface LuaSurface
 ---@field position table
 
----@type table<number, teams_base>
+---@type table<uint, teams_base>
 local _teams_base
 
 ---@class online_players_money
----@type table<number, number>
+---@type table<uint, number>
 local _online_players_money
 
 ---@class offline_players_money
----@type table<number, number>
+---@type table<uint, number>
 local _offline_players_money
 
 ---@class forces_money
----@type table<number, number>
+---@type table<uint, number>
 local _forces_money
 
 --- {{game, name, address, mods = {name, version}}}
@@ -56,10 +56,10 @@ local _forces_money
 ---@type table<number, table<string, string|table>>
 local _server_list
 
----@type number
+---@type uint
 local _void_force_index
 
----@type number
+---@type uint
 local _void_surface_index
 --#endregion
 
@@ -513,6 +513,21 @@ M.on_force_created = function(event)
 		for _, player in pairs(force.players) do
 			if player.valid then
 				force_group.add_player(player)
+			end
+		end
+	end
+end
+
+
+---@param event on_pre_surface_deleted
+M.on_pre_surface_deleted = function(event)
+	local surface = game.get_surface(event.surface_index)
+	local forces = game.forces
+	for force_index, team_data in pairs(_teams_base) do
+		if team_data.surface == surface then
+			local force = forces[force_index]
+			if force and force.valid then
+				remove_team_base(force)
 			end
 		end
 	end
@@ -1657,6 +1672,7 @@ M.events = {
 	[defines.events.on_forces_merging] = M.on_forces_merging,
 	[defines.events.on_forces_merged] = M.on_forces_merged,
 	[defines.events.on_force_created] = M.on_force_created,
+	[defines.events.on_pre_surface_deleted] = M.on_pre_surface_deleted,
 	[custom_events.on_pre_deleted_team] = M.on_pre_deleted_team,
 	[custom_events.on_round_start] = M.reset_balances,
 	[custom_events.on_player_accepted_invite] = M.on_player_accepted_invite
