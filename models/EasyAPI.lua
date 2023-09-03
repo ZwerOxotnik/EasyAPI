@@ -1347,10 +1347,7 @@ remote.add_interface("EasyAPI", {
 	---@param force_index number
 	---@return boolean
 	has_team_base_by_index = function(force_index)
-		if _teams_base[force_index] then
-			return true
-		end
-		return false
+		return (_teams_base[force_index] ~= nil)
 	end,
 	get_teams = function()
 		return _teams
@@ -1361,17 +1358,26 @@ remote.add_interface("EasyAPI", {
 	set_teams = function(new_teams) -- TODO: check
 		_mod_data.teams = new_teams
 	end,
-	remove_team = function(index)
-		local forces = game.forces
-		for _index, name in pairs(_teams) do
-			if _index == index then
-				raise_event(custom_events.on_pre_deleted_team, {force = forces[_index]})
-				_teams[_index] = nil
-				return name
-			end
+	remove_team = function(index, is_forced)
+		local force = game.forces[index]
+		if not (force and force.valid) then return end
+
+		if not is_forced and index == 1 or index == 2 or index == 3
+			or (_void_force_index and index == _void_force_index)
+		then
+			remove_team_base(force)
+			return
 		end
 
-		return 0 -- not found
+		local forces = game.forces
+		local team_name = _teams[index]
+		if not team_name then return 0 end -- not found
+
+		raise_event(custom_events.on_pre_deleted_team,
+			{force = force}
+		)
+		_teams[index] = nil
+		return team_name
 	end,
 	find_team = function(index)
 		for _index, name in pairs(_teams) do
