@@ -1,5 +1,10 @@
 require("defines")
-require("models/BetterCommands/control"):create_settings() -- Adds switchable commands
+
+
+local better_commands = require("__BetterCommands__/BetterCommands/control")
+better_commands.COMMAND_PREFIX = "CEAPI_"
+better_commands.create_settings("EasyAPI", "CEAPI_") -- Adds switchable commands
+
 
 local runtime_settings = {
 	{

@@ -14,11 +14,12 @@ event_handler = event_handler or require("event_handler")
 
 ---@type table<string, module>
 local modules = {}
-modules.better_commands = require("models/BetterCommands/control")
+modules.better_commands = require("__BetterCommands__/BetterCommands/control")
 modules.EasyAPI = require("models.EasyAPI")
 
 
-modules.better_commands:handle_custom_commands(modules.EasyAPI) -- adds commands
+modules.better_commands.COMMAND_PREFIX = "CEAPI_"
+modules.better_commands.handle_custom_commands(modules.EasyAPI) -- adds commands
 
 event_handler.add_libraries(modules)
 

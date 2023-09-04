@@ -1,4 +1,9 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.11.8
+Date: 2023-09-04
+  Bugfixes:
+    - Improved commands (should be safer to use them by its concept with other mods and scenarios)
+---------------------------------------------------------------------------------------------------
 Version: 0.11.7
 Date: 2023-09-03
   Bugfixes:
