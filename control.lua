@@ -20,6 +20,10 @@ modules.EasyAPI = require("models.EasyAPI")
 
 modules.better_commands.COMMAND_PREFIX = "CEAPI_"
 modules.better_commands.handle_custom_commands(modules.EasyAPI) -- adds commands
+if modules.better_commands.expose_global_data then
+	modules.better_commands.expose_global_data()
+end
+
 
 event_handler.add_libraries(modules)
 
