@@ -10,10 +10,11 @@ Returns tables of commands without functions as command "settings". All paramete
 				"team" - Stops execution if can't find a team (force) by parameter
 		allow_for_server :: boolean: Allow execution of a command from a server (default: false)
 		only_for_admin :: boolean: The command can be executed only by admins (default: false)
-		default_value :: boolean: Default value for settings (default: true)
+		is_added_by_default :: boolean: Default value for switchable commands (default: true)
 		allow_for_players :: string[]: Allows to use the command for players with specified names (default: nil)
 		max_input_length :: uint # Max amount of characters for command (default: 500)
 		is_logged :: boolean # Logs the command into .log file (default: false)
+		alternative_names :: string[] # Alternative names for the command (all commands should be added) (default: nil)
 ]]--
 ---@type table<string, table>
 return {
@@ -37,13 +38,13 @@ return {
 	get_money = {name = "get-money", is_allowed_empty_args = false},
 	pay = {is_allowed_empty_args = false},
 	team_balance = {name = "team-balance"},
-	uncloak  = {only_for_admin = true, default_value = false},
+	uncloak  = {only_for_admin = true, is_added_by_default = false},
 	fix_bugs = {name = "fix-bugs", allow_for_server = true, only_for_admin = true, is_allowed_empty_args = true},
 	sync     = {allow_for_server = true, only_for_admin = true, is_allowed_empty_args = true},
-	cloak    = {only_for_admin = true, default_value = false},
+	cloak    = {only_for_admin = true, is_added_by_default = false},
 	balance  = {},
-	kill = {name = "killme", default_value = false},
-	hp = {is_allowed_empty_args = false, only_for_admin = true, default_value = false},
-	["play-sound"] = {is_allowed_empty_args = false, only_for_admin = true, default_value = false},
+	kill = {name = "killme", is_added_by_default = false},
+	hp = {is_allowed_empty_args = false, only_for_admin = true, is_added_by_default = false},
+	["play-sound"] = {is_allowed_empty_args = false, only_for_admin = true, is_added_by_default = false},
 	unstuck = {is_allowed_empty_args = true},
 }
