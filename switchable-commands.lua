@@ -17,7 +17,12 @@ Returns tables of commands without functions as command "settings". All paramete
 		alternative_names :: string[]: Alternative names for the command (all commands should be added) (default: nil)
 		is_one_time_use :: boolean: Disables the command after using it (default: false)
 		is_one_time_use_for_player :: boolean: Disables for a player after using it (default: false)
-		is_one_time_use_for_force :: boolean: Disables for a force after using it (default: false)
+		is_one_time_use_for_force  :: boolean: Disables for a force after using it (default: false)
+		global_cooldown :: uint: The command can be used each N seconds  (default: nil)
+		player_cooldown :: uint: The command can be used each N seconds for players (default: nil)
+		force_cooldown  :: uint: The command can be used each N seconds for forces (default: nil)
+		disable_cooldown_for_admins :: boolean: Disables cooldown for admins (default: false)
+		disable_cooldown_for_server :: boolean: Disables cooldown for server (default: true)
 ]]--
 ---@type table<string, table>
 return {
