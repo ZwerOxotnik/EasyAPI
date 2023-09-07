@@ -1,15 +1,15 @@
 {
-	"name": "EasyAPI",
-	"version": "0.11.10",
-	"factorio_version": "1.1",
-	"title": "Easy API [ALPHA]",
-	"author": "ZwerOxotnik",
-	"contact": "zweroxotnik@gmail.com, Discord:ZwerOxotnik#7117",
-	"homepage": "https://www.reddit.com/r/ZwerOxotnik/",
-	"description": "see locale/*",
-	"dependencies": [
-		"zk-lib >= 0.10.0",
-		"BetterCommands >= 1.2.0",
-		"? gvv"
-	]
+  "name": "EasyAPI",
+  "version": "0.11.11",
+  "factorio_version": "1.1",
+  "title": "Easy API [ALPHA]",
+  "author": "ZwerOxotnik",
+  "contact": "zweroxotnik@gmail.com, Discord:ZwerOxotnik#7117",
+  "homepage": "https://www.reddit.com/r/ZwerOxotnik/",
+  "description": "see locale/*",
+  "dependencies": [
+    "zk-lib >= 0.10.0",
+    "BetterCommands >= 1.2.0",
+    "? gvv"
+  ]
 }
