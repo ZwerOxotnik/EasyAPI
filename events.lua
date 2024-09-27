@@ -79,16 +79,18 @@ return {
 	on_player_on_lobby_surface = script.generate_event_name(), -- {player_index}
 	on_fix_bugs = script.generate_event_name(), -- empty table
 	on_sync = script.generate_event_name(), -- empty table
+
 	--  Called before an entity will change a force.
 	--	Contains:
 	--		entity :: LuaEntity: The entity that will get new force.
 	--		next_force :: LuaForce: New force for the entity.
-	on_pre_entity_force_changed = script.generate_event_name(),
+	on_pre_entity_changed_force = script.generate_event_name(),
+
 	--  Called when an entity changed a force.
 	--	Contains:
 	--		entity :: LuaEntity: The entity that changed force.
 	--		prev_force :: LuaForce: The previous owner of the entity
-	on_entity_force_changed = script.generate_event_name(),
+	on_entity_changed_force = script.generate_event_name(),
 
 	-- Called when switched a mod
 	--	Contains:
