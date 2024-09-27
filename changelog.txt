@@ -1,4 +1,10 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.12.1
+Date: 2024-09-28
+  Scripting:
+    - Added on_pre_entity_force_changed, on_entity_force_changed events + new concept
+    -  More in external_mod_configs.lua
+---------------------------------------------------------------------------------------------------
 Version: 0.11.11
 Date: 2023-09-07
   Scripting:

@@ -19,7 +19,7 @@ return {
 	on_player_invited_in_team = script.generate_event_name(), -- {inviter_index, target_index, force}
 	on_player_sent_join_request_in_team = script.generate_event_name(), -- {player_index, force}
 	on_player_accepted_invite = script.generate_event_name(), -- {player_index, force}
-	-- Called when a force surrendered.
+	-- Called when a force surrenders.
 	--	Contains:
 	--		force :: LuaForce: The force to be surrender
 	--		destination :: LuaForce (optional): The force to reassign entities to.
@@ -39,10 +39,10 @@ return {
 	-- Spawn (no use yet)
 	on_new_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_new_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
-	on_new_force_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_new_force_spawn = script.generate_event_name(),  -- {position, id = spawn_id}
 	on_deleted_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_deleted_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
-	on_deleted_force_spawn = script.generate_event_name(), -- {position, id = spawn_id}
+	on_deleted_force_spawn = script.generate_event_name(),  -- {position, id = spawn_id}
 
 	-- Diplomacy
 	-- Called when someone/something changed a diplomacy relationship to ally/neutral/enemy.
@@ -60,7 +60,7 @@ return {
 	--  Called when a player successfully send a message.
 	--	Contains:
 	--		player_index :: uint: The index of the player who did the change.
-	--    message :: string: The chat message.
+	--		message :: string: The chat message.
 	--		chat_name :: string: name of chat.
 	on_send_message = script.generate_event_name(),
 
@@ -79,6 +79,16 @@ return {
 	on_player_on_lobby_surface = script.generate_event_name(), -- {player_index}
 	on_fix_bugs = script.generate_event_name(), -- empty table
 	on_sync = script.generate_event_name(), -- empty table
+	--  Called before an entity will change a force.
+	--	Contains:
+	--		entity :: LuaEntity: The entity that will get new force.
+	--		next_force :: LuaForce: New force for the entity.
+	on_pre_entity_force_changed = script.generate_event_name(),
+	--  Called when an entity changed a force.
+	--	Contains:
+	--		entity :: LuaEntity: The entity that changed force.
+	--		prev_force :: LuaForce: The previous owner of the entity
+	on_entity_force_changed = script.generate_event_name(),
 
 	-- Called when switched a mod
 	--	Contains:
