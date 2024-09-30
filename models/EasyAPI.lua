@@ -539,7 +539,7 @@ M.on_pre_deleted_team = function(event)
 	remove_team_base(force)
 
 	local index = force.index
-	_teams_base[index] = nil
+	_teams_base[index]   = nil
 	_forces_money[index] = nil
 end
 
@@ -1324,6 +1324,9 @@ remote.add_interface("EasyAPI", {
 	end,
 	get_data = function()
 		return _mod_data
+	end,
+	change_setting = function(type, name, value)
+		settings[type][name] = {value = value}
 	end,
 	assign_default_permission_group = M.assign_default_permission_group,
 	add_team = function(force)
