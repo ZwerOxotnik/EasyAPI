@@ -1,4 +1,12 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.12.4
+Date: 2024-10-01
+  Changes:
+    - It won't delete forces created by other mods/scripts/scenarios
+  Scripting:
+    - Added "is_team_deletable" into the remote interface
+    - 2nd parameter of "add_team" in the remote interface is "is_not_deletable" now
+---------------------------------------------------------------------------------------------------
 Version: 0.12.3
 Date: 2024-09-30
   Scripting:

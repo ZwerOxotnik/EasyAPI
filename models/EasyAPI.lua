@@ -491,6 +491,7 @@ M.on_forces_merged = function(event)
 	_teams[source_index] = nil
 	_virtual_base_resources[source_index] = nil
 	_general_forces_data[source_index] = nil
+	global.EasyAPI.not_deletable_teams[source_index] = nil
 end
 
 
@@ -696,12 +697,16 @@ M.create_new_team_command = function(cmd)
 	if new_team == nil then return end
 
 	-- TODO: improve
-	if #player.force.players == 1 and not constant_forces[player.force.name] then
+	local force = player.force
+	if #force.players == 1 and not constant_forces[force.name] then
 		local technologies = new_team.technologies
-		for name, tech in pairs(player.force.technologies) do
+		for name, tech in pairs(force.technologies) do
 			technologies[name].researched = tech.researched
 		end
-		game.merge_forces(player.force, new_team)
+
+		if _teams[force.index] and not global.EasyAPI.not_deletable_teams[force.index] then
+			game.merge_forces(force, new_team)
+		end
 	else
 		local prev_force = player.force
 		player.force = new_team
@@ -1174,6 +1179,8 @@ local function update_global_data()
 	_mod_data.teams = _mod_data.teams or {}
 	_mod_data.online_players_money  = _mod_data.online_players_money  or {}
 	_mod_data.offline_players_money = _mod_data.offline_players_money or {}
+	---@type table<uint, true>
+	_mod_data.not_deletable_teams   = _mod_data.not_deletable_teams   or {}
 	_mod_data.forces_money = _mod_data.forces_money or {}
 	_mod_data.teams_base = _mod_data.teams_base or {}
 	_mod_data.virtual_base_resources = _mod_data.virtual_base_resources or {}
@@ -1329,9 +1336,20 @@ remote.add_interface("EasyAPI", {
 		settings[type][name] = {value = value}
 	end,
 	assign_default_permission_group = M.assign_default_permission_group,
-	add_team = function(force)
+	---@param force LuaForce
+	---@param is_not_deletable true?
+	add_team = function(force, is_not_deletable)
 		_teams[force.index] = force.name
+		if is_not_deletable then
+			global.EasyAPI.not_deletable_teams[force.index] = true
+		end
 		raise_event(custom_events.on_new_team, {force = force})
+	end,
+	---@param force_index integer
+	---@return boolean?
+	is_team_deletable = function(force_index)
+		if _teams[force_index] then return end
+		return not global.EasyAPI.not_deletable_teams[force_index]
 	end,
 	---@param force LuaForce
 	---@param surface LuaSurface
@@ -1361,25 +1379,25 @@ remote.add_interface("EasyAPI", {
 	set_teams = function(new_teams) -- TODO: check
 		_mod_data.teams = new_teams
 	end,
-	remove_team = function(index, is_forced)
-		local force = game.forces[index]
+	remove_team = function(force_index, is_forced)
+		local force = game.forces[force_index]
 		if not (force and force.valid) then return end
 
-		if not is_forced and index == 1 or index == 2 or index == 3
-			or (_void_force_index and index == _void_force_index)
+		local team_name = _teams[force_index]
+		if not team_name then return 0 end -- not found
+		if not is_forced and _mod_data.not_deletable_teams[force_index] then return end
+
+		if not is_forced and force_index == 1 or force_index == 2 or force_index == 3
+			or (_void_force_index and force_index == _void_force_index)
 		then
 			remove_team_base(force)
 			return
 		end
 
-		local forces = game.forces
-		local team_name = _teams[index]
-		if not team_name then return 0 end -- not found
-
 		raise_event(custom_events.on_pre_deleted_team,
 			{force = force}
 		)
-		_teams[index] = nil
+		_teams[force_index] = nil
 		return team_name
 	end,
 	find_team = function(index)
