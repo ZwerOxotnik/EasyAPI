@@ -1,4 +1,13 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.12.5
+Date: 2024-10-02
+  Changes:
+    - Improved /unstuck command
+  Bugfixes:
+    - Improved data stability for _mod_data.not_deletable_teams
+  Scripting:
+    - on_round_end event should have source
+---------------------------------------------------------------------------------------------------
 Version: 0.12.4
 Date: 2024-10-01
   Changes:

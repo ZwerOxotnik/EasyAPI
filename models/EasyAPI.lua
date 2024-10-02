@@ -1,5 +1,6 @@
 local team_util = require("models/team_util")
 permissions_util = require("models/permissions_util")
+player_util = require("__zk-lib__/static-libs/lualibs/control_stage/player-util")
 
 
 ---@class EasyAPI : module
@@ -304,7 +305,7 @@ M.on_player_changed_force = function(event)
 	if not (player and player.valid) then return end
 
 	if settings.global["EAPI_permissions_per_force"].value and
-		settings.global["EAPI_permissions_per_player"].value == false
+	   settings.global["EAPI_permissions_per_player"].value == false
 	then
 		_general_forces_data[player.force.index].permission_group.add_player(player)
 	end
@@ -348,9 +349,9 @@ M.on_player_promoted = function(event)
 	if not (player and player.valid) then return end
 
 	if settings.global["EAPI_permissions_per_player"].value or
-		settings.global["EAPI_permissions_per_force"].value or
-		settings.global["EAPI_add_admins_to_admin_permission_group"].value == false then
-		return
+	   settings.global["EAPI_permissions_per_force"].value or
+	   settings.global["EAPI_add_admins_to_admin_permission_group"].value == false then
+	   return
 	end
 
 	_mod_data.admin_group.add_player(player)
@@ -489,9 +490,9 @@ end
 M.on_forces_merged = function(event)
 	local source_index = event.source_index
 	_teams[source_index] = nil
+	_mod_data.not_deletable_teams[source_index] = nil
 	_virtual_base_resources[source_index] = nil
 	_general_forces_data[source_index] = nil
-	global.EasyAPI.not_deletable_teams[source_index] = nil
 end
 
 
@@ -704,7 +705,7 @@ M.create_new_team_command = function(cmd)
 			technologies[name].researched = tech.researched
 		end
 
-		if _teams[force.index] and not global.EasyAPI.not_deletable_teams[force.index] then
+		if _teams[force.index] and not _mod_data.not_deletable_teams[force.index] then
 			game.merge_forces(force, new_team)
 		end
 	else
@@ -1341,7 +1342,7 @@ remote.add_interface("EasyAPI", {
 	add_team = function(force, is_not_deletable)
 		_teams[force.index] = force.name
 		if is_not_deletable then
-			global.EasyAPI.not_deletable_teams[force.index] = true
+			_mod_data.not_deletable_teams[force.index] = true
 		end
 		raise_event(custom_events.on_new_team, {force = force})
 	end,
@@ -1349,12 +1350,11 @@ remote.add_interface("EasyAPI", {
 	---@return boolean?
 	is_team_deletable = function(force_index)
 		if _teams[force_index] then return end
-		return not global.EasyAPI.not_deletable_teams[force_index]
+		return not _mod_data.not_deletable_teams[force_index]
 	end,
 	---@param force LuaForce
 	---@param surface LuaSurface
 	---@param position MapPosition
-	---@return boolean?
 	change_team_base = function(force, surface, position)
 		_teams_base[force.index] = {surface = surface, position = position}
 		raise_event(custom_events.on_new_team_base, {force = force, surface = surface, position = position})
@@ -1398,6 +1398,7 @@ remote.add_interface("EasyAPI", {
 			{force = force}
 		)
 		_teams[force_index] = nil
+		_mod_data.not_deletable_teams[force_index] = nil
 		return team_name
 	end,
 	find_team = function(index)
@@ -1812,21 +1813,10 @@ M.commands = {
 		end
 	end,
 	["unstuck"] = function(cmd)
-		local player = game.get_player(cmd.player_index)
-		local character = player.character
-		--TODO: add message
-		if character == nil then return end
-
-		local surface = player.surface
-		local position = surface.find_non_colliding_position(
-			character.name, player.position, 5, 1
-		)
-		if position then
-			player.teleport(position, surface)
-		else
-			--TODO: change message
-			player.print({"error.error-message-box-title"})
-		end
+		local player   = game.get_player(cmd.player_index)
+		local surface  = player.surface
+		local position = player.position
+		player_util.teleport_safely(player, surface, position)
 	end,
 	["cloak"] = function(cmd)
 		local player = game.get_player(cmd.player_index)

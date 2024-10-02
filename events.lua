@@ -6,7 +6,7 @@
 return {
 	-- Rounds
 	on_round_start = script.generate_event_name(),
-	on_round_end = script.generate_event_name(),
+	on_round_end   = script.generate_event_name(), -- {source: string}
 
 	-- Teams
 	on_team_lost = script.generate_event_name(), -- {force}
