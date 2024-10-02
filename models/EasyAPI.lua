@@ -1911,7 +1911,7 @@ M.commands = {
 	["play-sound"] = function(cmd)
 		local player = game.get_player(cmd.player_index)
 		local sound_path = cmd.parameter
-		if game.is_valid_sound_pat(sound_path) then
+		if game.is_valid_sound_path(sound_path) then
 			game.play_sound{path = sound_path}
 		else
 			--TODO: change message
