@@ -86,7 +86,6 @@ local allow_create_team = settings.global["EAPI_allow_create_team"].value
 --#region Constants
 local custom_events = require("events")
 local raise_event = script.raise_event
-local constant_forces = {neutral = true, player = true, enemy = true}
 local print_to_rcon = rcon.print
 local tremove = table.remove
 local tconcat = table.concat
@@ -173,7 +172,7 @@ function create_void_surface()
 	return surface
 end
 
-M.reset_balances = function()
+function M.reset_balances()
 	for player_index in pairs(_online_players_money) do
 		_online_players_money[player_index] = start_player_money
 	end
@@ -183,6 +182,24 @@ M.reset_balances = function()
 	for force_index in pairs(_forces_money) do
 		_forces_money[force_index] = start_force_money
 	end
+end
+
+function M.reset_tick_player_joining_team()
+	local data = _mod_data.tick_player_joining_team
+	for k in pairs(data) do
+		data[k] = nil
+	end
+end
+
+
+---@param player_index uint
+---@return boolean, uint? # is allowed, ticks before/after allowing
+function M.is_player_allowed_to_change_team(player_index)
+	local tick = _mod_data.tick_player_joining_team[player_index]
+	if not tick then return true end
+
+	local ticks = (tick + settings.global["EAPI_min_time_between_changing_teams"].value * 60 * 60 * game.speed) - game.tick
+	return (ticks <= 0), ticks
 end
 
 ---@param player LuaPlayer
@@ -250,7 +267,7 @@ end
 --#region Functions of events
 
 
----@param event on_player_created
+---@param event EventData.on_player_created
 M.on_player_created = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
@@ -268,7 +285,7 @@ M.on_player_created = function(event)
 end
 
 
----@param event on_player_joined_game
+---@param event EventData.on_player_joined_game
 M.on_player_joined_game = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
@@ -287,7 +304,7 @@ M.on_player_joined_game = function(event)
 end
 
 
----@param event on_player_left_game
+---@param event EventData.on_player_left_game
 M.on_player_left_game = function(event)
 	local player_index = event.player_index
 	local money = _online_players_money[player_index]
@@ -298,7 +315,7 @@ M.on_player_left_game = function(event)
 end
 
 
----@param event on_player_changed_force
+---@param event EventData.on_player_changed_force
 M.on_player_changed_force = function(event)
 	local player_index = event.player_index
 	local player = game.get_player(player_index)
@@ -332,7 +349,7 @@ M.on_player_changed_force = function(event)
 end
 
 
----@param event on_player_demoted
+---@param event EventData.on_player_demoted
 M.on_player_demoted = function(event)
 	local player = game.get_player(event.player_index)
 	if not (player and player.valid) then return end
@@ -343,7 +360,7 @@ M.on_player_demoted = function(event)
 end
 
 
----@param event on_player_promoted
+---@param event EventData.on_player_promoted
 M.on_player_promoted = function(event)
 	local player = game.get_player(event.player_index)
 	if not (player and player.valid) then return end
@@ -358,16 +375,20 @@ M.on_player_promoted = function(event)
 end
 
 
----@param event on_pre_player_removed
+---@param event EventData.on_pre_player_removed
 M.on_pre_player_removed = function(event)
 	local player_index = event.player_index
+	_mod_data.tick_player_joining_team[player_index] = nil
+
 	local player = game.get_player(player_index)
+
 	local force_index = player.force.index
 	local player_money = _online_players_money[player_index]
 	-- send player money to force
 	if _forces_money[force_index] and player_money then
 		_forces_money[force_index] = _forces_money[force_index] + player_money
 	end
+
 
 	local persistent_player_data = _mod_data.persistent_players_data[player.name]
 	if persistent_player_data then
@@ -378,7 +399,7 @@ M.on_pre_player_removed = function(event)
 end
 
 
----@param event on_game_created_from_scenario
+---@param event EventData.on_game_created_from_scenario
 M.on_game_created_from_scenario = function(event)
 	if settings.global["EAPI_start-evolution"] then
 		game.forces.enemy.evolution_factor = settings.global["EAPI_start-evolution"].value
@@ -469,7 +490,7 @@ local mod_settings = {
 		end
 	end,
 }
----@param event on_runtime_mod_setting_changed
+---@param event EventData.on_runtime_mod_setting_changed
 M.on_runtime_mod_setting_changed = function(event)
 	local setting_name = event.setting
 	local f = mod_settings[setting_name]
@@ -477,7 +498,7 @@ M.on_runtime_mod_setting_changed = function(event)
 end
 
 
----@param event on_forces_merging
+---@param event EventData.on_forces_merging
 M.on_forces_merging = function(event)
 	local force = event.source
 	if _teams[force.index] then
@@ -486,7 +507,7 @@ M.on_forces_merging = function(event)
 end
 
 
----@param event on_forces_merged
+---@param event EventData.on_forces_merged
 M.on_forces_merged = function(event)
 	local source_index = event.source_index
 	_teams[source_index] = nil
@@ -496,7 +517,7 @@ M.on_forces_merged = function(event)
 end
 
 
----@param event on_force_created
+---@param event EventData.on_force_created
 M.on_force_created = function(event)
 	local force = event.force
 	if not (force and force.valid) then return end
@@ -521,7 +542,18 @@ M.on_force_created = function(event)
 end
 
 
----@param event on_pre_surface_deleted
+M.on_round_start = function(event)
+	M.reset_balances()
+	M.reset_tick_player_joining_team()
+end
+
+
+M.on_round_end = function(event)
+	M.reset_tick_player_joining_team()
+end
+
+
+---@param event EventData.on_pre_surface_deleted
 M.on_pre_surface_deleted = function(event)
 	local surface = game.get_surface(event.surface_index)
 	local forces = game.forces
@@ -551,6 +583,15 @@ M.on_player_accepted_invite = function(event)
 	if not (player and player.valid) then return end
 
 	player.force = event.force
+end
+
+
+M.on_player_joined_team = function(event)
+	local player_index = event.player_index
+	local player = game.get_player(player_index)
+	if not (player and player.valid) then return end
+
+	_mod_data.tick_player_joining_team[player_index] = game.tick
 end
 
 --#endregion
@@ -699,7 +740,7 @@ M.create_new_team_command = function(cmd)
 
 	-- TODO: improve
 	local force = player.force
-	if #force.players == 1 and not constant_forces[force.name] then
+	if #force.players == 1 and force.index > 3 then
 		local technologies = new_team.technologies
 		for name, tech in pairs(force.technologies) do
 			technologies[name].researched = tech.researched
@@ -726,7 +767,7 @@ M.remove_team_command = function(cmd)
 	if #target_force.players ~= 0 then
 		admin.print({"not-empty-team"})
 		return
-	elseif constant_forces[target_force.name] then
+	elseif target_force.index <= 3 then
 		admin.print({"gui-map-editor-force-editor.cant-delete-built-in-force"})
 		return
 	end
@@ -1188,6 +1229,8 @@ local function update_global_data()
 	_mod_data.virtual_base_resources_general_data = _mod_data.virtual_base_resources_general_data or {}
 	_mod_data.general_forces_data  = _mod_data.general_forces_data  or {}
 	_mod_data.general_players_data = _mod_data.general_players_data or {}
+	---@type table<uint, uint>
+	_mod_data.tick_player_joining_team = _mod_data.tick_player_joining_team or {}
 	---@type table<string, table>
 	_mod_data.persistent_players_data = _mod_data.persistent_players_data or {}
 
@@ -1346,6 +1389,7 @@ remote.add_interface("EasyAPI", {
 		end
 		raise_event(custom_events.on_new_team, {force = force})
 	end,
+	is_player_allowed_to_change_team = M.is_player_allowed_to_change_team,
 	---@param force_index integer
 	---@return boolean?
 	is_team_deletable = function(force_index)
@@ -1702,8 +1746,10 @@ M.events = {
 	[defines.events.on_force_created] = M.on_force_created,
 	[defines.events.on_pre_surface_deleted] = M.on_pre_surface_deleted,
 	[custom_events.on_pre_deleted_team] = M.on_pre_deleted_team,
-	[custom_events.on_round_start] = M.reset_balances,
-	[custom_events.on_player_accepted_invite] = M.on_player_accepted_invite
+	[custom_events.on_round_start] = M.on_round_start,
+	[custom_events.on_round_end]   = M.on_round_end,
+	[custom_events.on_player_accepted_invite] = M.on_player_accepted_invite,
+	[custom_events.on_player_joined_team] = M.on_player_joined_team,
 }
 
 M.commands = {

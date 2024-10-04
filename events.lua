@@ -10,7 +10,7 @@ return {
 
 	-- Teams
 	on_team_lost = script.generate_event_name(), -- {force}
-	on_team_won = script.generate_event_name(), -- {force}
+	on_team_won  = script.generate_event_name(), -- {force}
 	on_player_joined_team = script.generate_event_name(), -- {player_index, force, prev_force}
 	on_new_team = script.generate_event_name(), -- {force}
 	on_pre_deleted_team = script.generate_event_name(), -- {force}
@@ -39,10 +39,10 @@ return {
 	-- Spawn (no use yet)
 	on_new_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_new_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
-	on_new_force_spawn = script.generate_event_name(),  -- {position, id = spawn_id}
+	on_new_force_spawn  = script.generate_event_name(), -- {position, id = spawn_id}
 	on_deleted_global_spawn = script.generate_event_name(), -- {position, id = spawn_id}
 	on_deleted_player_spawn = script.generate_event_name(), -- {position, id = spawn_id}
-	on_deleted_force_spawn = script.generate_event_name(),  -- {position, id = spawn_id}
+	on_deleted_force_spawn  = script.generate_event_name(), -- {position, id = spawn_id}
 
 	-- Diplomacy
 	-- Called when someone/something changed a diplomacy relationship to ally/neutral/enemy.
@@ -51,9 +51,9 @@ return {
 	--		destination :: LuaForce: The force which have to accept new diplomacy relationship.
 	--		player_index :: uint (optional): The player who cause the changing.
 	--		prev_relationship :: string: Previous relationship between forces.
-	on_ally = script.generate_event_name(),
+	on_ally    = script.generate_event_name(),
 	on_neutral = script.generate_event_name(),
-	on_enemy = script.generate_event_name(),
+	on_enemy   = script.generate_event_name(),
 
 	-- Chat
 	-- (Propably, it'll be changed)

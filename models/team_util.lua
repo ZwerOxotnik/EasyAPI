@@ -26,6 +26,23 @@ local on_player_accepted_invite_event
 M.custom_events = {}
 
 
+---@param player LuaPlayer
+---@param wait_N_ticks uint?
+function M.inform_player_cant_join_team(player, wait_N_ticks)
+	if wait_N_ticks then
+		player.print(
+			{"", {"you-cant-change-team-yet"}, " ", {"wait-N-mins", string.format("%.1f", wait_N_ticks / 60 / 60 / game.speed)}}, -- Yeah, I'm lazy
+			{1, 0, 0}
+		)
+	else
+		player.print(
+			{{"you-cant-change-team-yet"}},
+			{1, 0, 0}
+		)
+	end
+end
+
+
 -- Doesn't check team name length
 ---@param name string
 ---@return boolean
