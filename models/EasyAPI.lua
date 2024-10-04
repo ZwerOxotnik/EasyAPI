@@ -575,6 +575,11 @@ M.on_pre_deleted_team = function(event)
 	local index = force.index
 	_teams_base[index]   = nil
 	_forces_money[index] = nil
+
+	-- Maybe, it's wrong
+	for _, player in pairs(force.players) do
+		_mod_data.tick_player_joining_team[player.index] = nil
+	end
 end
 
 
@@ -1390,6 +1395,11 @@ remote.add_interface("EasyAPI", {
 		raise_event(custom_events.on_new_team, {force = force})
 	end,
 	is_player_allowed_to_change_team = M.is_player_allowed_to_change_team,
+	---@param player_index uint
+	---@param ticks uint?
+	set_tick_player_joining_team = function(player_index, ticks)
+		_mod_data.tick_player_joining_team[player_index] = ticks
+	end,
 	---@param force_index integer
 	---@return boolean?
 	is_team_deletable = function(force_index)

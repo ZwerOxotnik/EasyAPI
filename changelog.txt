@@ -1,9 +1,15 @@
 ﻿---------------------------------------------------------------------------------------------------
+Version: 0.12.7
+Date: 2024-10-04
+  Scripting:
+    - Added "set_tick_player_joining_team" into the remote interface
+---------------------------------------------------------------------------------------------------
 Version: 0.12.6
 Date: 2024-10-04
+  Features:
+    - Added new setting "Minimum time between changing teams"
   Bugfixes:
     - Fixed /play-sound command
-    - Added new setting "Minimum time between changing teams"
 ---------------------------------------------------------------------------------------------------
 Version: 0.12.5
 Date: 2024-10-02
