@@ -59,11 +59,10 @@ EasyAPI.create_coin_conversion_recipe = function(subgroup, required_count, requi
 		subgroup = subgroup,
 		category = "money",
 		enabled = true,
-		ingredients = {{required_item_name, required_count}},
+		ingredients = {{type="item", name=required_item_name, amount=required_count}},
 		energy_required = required_count,
 		order = result_item_name .. "-" .. required_count,
-		result = result_item_name,
-		result_count = result_count
+		results = {{type="item", name=result_item_name, amount=result_count}},
 	}
 	if bottom_icon or top_icon then
 		if bottom_icon and top_icon then
@@ -127,5 +126,5 @@ end
 EasyAPI._add_new_coin = EasyAPI.add_new_coin
 
 
-EasyAPI.add_new_coin(50, "__EasyAPI__/graphics/coinX50.png")
+EasyAPI.add_new_coin(50,   "__EasyAPI__/graphics/coinX50.png")
 EasyAPI.add_new_coin(2500, "__EasyAPI__/graphics/coinX2500.png")

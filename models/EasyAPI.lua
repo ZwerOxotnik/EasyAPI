@@ -402,7 +402,7 @@ end
 ---@param event EventData.on_game_created_from_scenario
 M.on_game_created_from_scenario = function(event)
 	if settings.global["EAPI_start-evolution"] then
-		game.forces.enemy.evolution_factor = settings.global["EAPI_start-evolution"].value
+		game.forces.enemy.set_evolution_factor(settings.global["EAPI_start-evolution"].value, 1)
 	end
 
 	raise_event(custom_events.on_new_team, {force = game.forces.player})
@@ -1204,7 +1204,7 @@ end
 --#region Pre-game stage
 
 local function link_data()
-	_mod_data = global.EasyAPI
+	_mod_data = storage.EasyAPI
 	_teams = _mod_data.teams
 	_online_players_money  = _mod_data.online_players_money
 	_offline_players_money = _mod_data.offline_players_money
@@ -1212,7 +1212,7 @@ local function link_data()
 	_forces_money = _mod_data.forces_money
 	_void_surface_index = _mod_data.void_surface_index
 	_void_force_index = _mod_data.void_force_index
-	_server_list = global.server_list
+	_server_list = storage.server_list
 	_virtual_base_resources = _mod_data.virtual_base_resources
 	_virtual_base_resources_general_data = _mod_data.virtual_base_resources_general_data
 	_general_forces_data  = _mod_data.general_forces_data
@@ -1220,9 +1220,9 @@ local function link_data()
 end
 
 local function update_global_data()
-	global.server_list = global.server_list or {}
-	global.EasyAPI = global.EasyAPI or {}
-	_mod_data = global.EasyAPI
+	storage.server_list = storage.server_list or {}
+	storage.EasyAPI = storage.EasyAPI or {}
+	_mod_data = storage.EasyAPI
 	_mod_data.teams = _mod_data.teams or {}
 	_mod_data.online_players_money  = _mod_data.online_players_money  or {}
 	_mod_data.offline_players_money = _mod_data.offline_players_money or {}
@@ -1694,11 +1694,11 @@ remote.add_interface("EasyAPI_rcon", {
 remote.add_interface("BridgeAPI", {
 	---@param name? string
 	set_server_name = function(name)
-		global.server_name = name
+		storage.server_name = name
 	end,
 	---@return string?
 	get_server_name = function()
-		return global.server_name
+		return storage.server_name
 	end,
 	get_server_name_for_rcon = function()
 		print_to_rcon(global.server_name)
@@ -1732,8 +1732,8 @@ remote.add_interface("BridgeAPI", {
 		end
 	end,
 	clear_server_list = function()
-		global.server_list = {}
-		_server_list = global.server_list
+		storage.server_list = {}
+		_server_list = storage.server_list
 	end,
 })
 
