@@ -1644,10 +1644,10 @@ remote.add_interface("EasyAPI", {
 
 remote.add_interface("EasyAPI_rcon", {
 	get_data = function()
-		print_to_rcon(game.table_to_json(_mod_data))
+		print_to_rcon(helpers.table_to_json(_mod_data))
 	end,
 	get_teams = function()
-		print_to_rcon(game.table_to_json(_teams))
+		print_to_rcon(helpers.table_to_json(_teams))
 	end,
 	get_teams_count = function()
 		print_to_rcon(#_teams)
@@ -1660,13 +1660,13 @@ remote.add_interface("EasyAPI_rcon", {
 		end
 	end,
 	get_all_virtual_base_resources = function()
-		print_to_rcon(game.table_to_json(_virtual_base_resources))
+		print_to_rcon(helpers.table_to_json(_virtual_base_resources))
 	end,
 	get_offline_players_money = function()
-		print_to_rcon(game.table_to_json(_offline_players_money))
+		print_to_rcon(helpers.table_to_json(_offline_players_money))
 	end,
 	get_online_players_money = function()
-		print_to_rcon(game.table_to_json(_online_players_money))
+		print_to_rcon(helpers.table_to_json(_online_players_money))
 	end,
 	get_player_money_by_index = function(player_index)
 		print_to_rcon(_online_players_money[player_index] or _offline_players_money[player_index])
@@ -1678,7 +1678,7 @@ remote.add_interface("EasyAPI_rcon", {
 		print_to_rcon(_offline_players_money[player_index])
 	end,
 	get_forces_money = function()
-		print_to_rcon(game.table_to_json(_forces_money))
+		print_to_rcon(helpers.table_to_json(_forces_money))
 	end,
 	get_force_money = function(force_index)
 		print_to_rcon(_forces_money[force_index])
@@ -1701,14 +1701,14 @@ remote.add_interface("BridgeAPI", {
 		return storage.server_name
 	end,
 	get_server_name_for_rcon = function()
-		print_to_rcon(global.server_name)
+		print_to_rcon(storage.server_name)
 	end,
 	---@return server_list
 	get_server_list = function()
 		return _server_list
 	end,
 	get_server_list_for_rcon = function()
-		print_to_rcon(game.table_to_json(_server_list))
+		print_to_rcon(helpers.table_to_json(_server_list))
 	end,
 	---@param game string # Factorio/Minecraft etc
 	---@param server_name string
@@ -1967,7 +1967,7 @@ M.commands = {
 	["play-sound"] = function(cmd)
 		local player = game.get_player(cmd.player_index)
 		local sound_path = cmd.parameter
-		if game.is_valid_sound_path(sound_path) then
+		if helpers.is_valid_sound_path(sound_path) then
 			game.play_sound{path = sound_path}
 		else
 			--TODO: change message
