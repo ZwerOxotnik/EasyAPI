@@ -1,5 +1,5 @@
 ﻿---------------------------------------------------------------------------------------------------
-Version: 0.13.2
+Version: 0.13.3
 Date: 2025-07-02
   Features:
     - Added new setting: Disable money item tab in inventory

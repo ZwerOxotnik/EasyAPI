@@ -14,7 +14,7 @@ data:extend({
 		name = "money",
 		order = "z",
 		icon = "__base__/graphics/icons/coin.png",
-		hidden = settings.startup["EAPI_disable_money_item_group"].value
+		hidden = settings.startup["EAPI_disable_money_item_group"].value,
 		icon_size = 64, icon_mipmaps = 4,
 	}, {
 		type = "item-subgroup",
