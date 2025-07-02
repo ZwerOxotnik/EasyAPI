@@ -33,7 +33,7 @@ data:extend(runtime_settings)
 local startup_settings = {
 	{type = "bool-setting", name = "EAPI_disable_money_item_group", default_value = false},
 }
-for _, data in pairs(runtime_settings) do
+for _, data in pairs(startup_settings) do
 	data.setting_type = "startup"
 end
 data:extend(startup_settings)
