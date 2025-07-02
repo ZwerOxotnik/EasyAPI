@@ -99,7 +99,7 @@ This project contains [images](/graphics/) from ["Factorio"](factorio.com), plea
 License
 -------
 
-Copyright (c) 2021-2023 ZwerOxotnik \<zweroxotnik@gmail.com\>
+Copyright (c) 2021-2025 ZwerOxotnik \<zweroxotnik@gmail.com\>
 
 Use of the source code included here is governed by the Apache License, Version 2.0. See the [LICENSE](/LICENSE) file for details.
 
