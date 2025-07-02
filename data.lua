@@ -14,7 +14,6 @@ data:extend({
 		name = "money",
 		order = "z",
 		icon = "__base__/graphics/icons/coin.png",
-		hidden = settings.startup["EAPI_disable_money_item_group"].value,
 		icon_size = 64, icon_mipmaps = 4,
 	}, {
 		type = "item-subgroup",
@@ -59,7 +58,7 @@ EasyAPI.create_coin_conversion_recipe = function(subgroup, required_count, requi
 		name = required_item_name .. "-" .. result_item_name .. "-" .. required_count,
 		subgroup = subgroup,
 		category = "money",
-		enabled = true,
+		enabled = settings.startup["EAPI_enable_money_recipes"].value,
 		ingredients = {{type="item", name=required_item_name, amount=required_count}},
 		energy_required = required_count,
 		order = result_item_name .. "-" .. required_count,

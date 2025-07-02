@@ -1,8 +1,15 @@
 ﻿---------------------------------------------------------------------------------------------------
-Version: 0.13.3
+Version: 0.13.5
 Date: 2025-07-02
   Features:
-    - Added new setting: Disable money item tab in inventory
+    - Added new setting: Enable money recipes
+  Bugfixes:
+    - Deleted useless setting: "Disable money item tab in inventory"
+---------------------------------------------------------------------------------------------------
+Version: 0.13.4
+Date: 2025-07-02
+  Features:
+    - Added new setting: Disable money item tab in inventory (didn't work at all)
 ---------------------------------------------------------------------------------------------------
 Version: 0.13.1
 Date: 2024-11-10
